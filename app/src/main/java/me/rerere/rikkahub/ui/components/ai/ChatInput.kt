@@ -717,7 +717,16 @@ private fun QuickMessageButton(
         StickerPanel(
             quickMessages = quickMessages,
             onSelect = { quickMessage ->
-                state.appendText(quickMessage.content)
+                // Strip custom URL from sticker content before sending to AI
+                // (表情包:ID|URL) → (表情包:ID)
+                val content = quickMessage.content
+                val info = extractStickerInfo(content)
+                val cleanContent = if (info != null && info.customUrl != null) {
+                    content.replace("(表情包:${info.id}|${info.customUrl})", "(表情包:${info.id})")
+                } else {
+                    content
+                }
+                state.appendText(cleanContent)
                 showPanel = false
             },
             onDismiss = { showPanel = false }
@@ -775,10 +784,7 @@ private fun StickerPanel(
         ) {
             items(quickMessages.size) { index ->
                 val qm = quickMessages[index]
-                val stickerId = extractStickerId(qm.content)
-                val imageUrl = if (stickerId != null) {
-                    stickerUrl(stickerId)
-                } else null
+                val stickerInfo = extractStickerInfo(qm.content)
 
                 Surface(
                     onClick = { onSelect(qm) },
@@ -790,9 +796,10 @@ private fun StickerPanel(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(6.dp)
                     ) {
-                        if (imageUrl != null) {
+                        if (stickerInfo != null) {
                             StickerThumbnail(
-                                stickerId = stickerId!!,
+                                stickerId = stickerInfo.id,
+                                customUrl = stickerInfo.customUrl,
                                 contentDescription = qm.title,
                                 modifier = Modifier.size(48.dp),
                             )
@@ -824,32 +831,67 @@ private fun StickerPanel(
 private val stickerPattern = Regex("""\(表情包:(.+)\)""")
 
 /**
- * 表情包缩略图：先尝试 .png，失败则尝试 .gif
+ * 从快捷消息 content 中解析表情包信息。
+ * 支持两种格式：
+ *   (表情包:ID)        → 从 GitHub stickers 仓库加载
+ *   (表情包:ID|URL)    → 直接使用用户提供的图片 URL
+ */
+private data class StickerInfo(
+    val id: String,
+    val customUrl: String? = null,
+)
+
+private fun extractStickerInfo(content: String): StickerInfo? {
+    val raw = stickerPattern.find(content)?.groupValues?.get(1) ?: return null
+    val pipeIndex = raw.indexOf('|')
+    return if (pipeIndex > 0 && raw.substring(pipeIndex + 1).startsWith("http")) {
+        StickerInfo(
+            id = raw.substring(0, pipeIndex).trim(),
+            customUrl = raw.substring(pipeIndex + 1).trim(),
+        )
+    } else {
+        StickerInfo(id = raw)
+    }
+}
+
+/**
+ * 表情包缩略图：
+ * - 有自定义 URL → 直接加载
+ * - 无自定义 URL → 先尝试 GitHub .png，失败则尝试 .gif
  */
 @Composable
 private fun StickerThumbnail(
     stickerId: String,
+    customUrl: String? = null,
     contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
-    var useFallback by remember(stickerId) { mutableStateOf(false) }
-    val url = if (useFallback) stickerUrlGif(stickerId) else stickerUrl(stickerId)
-
-    AsyncImage(
-        model = url,
-        contentDescription = contentDescription,
-        modifier = modifier,
-        contentScale = ContentScale.Fit,
-        onError = {
-            if (!useFallback) {
-                useFallback = true
+    if (customUrl != null) {
+        AsyncImage(
+            model = customUrl,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = ContentScale.Fit,
+        )
+    } else {
+        var useFallback by remember(stickerId) { mutableStateOf(false) }
+        val url = if (useFallback) stickerUrlGif(stickerId) else stickerUrl(stickerId)
+        AsyncImage(
+            model = url,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = ContentScale.Fit,
+            onError = {
+                if (!useFallback) {
+                    useFallback = true
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 private fun extractStickerId(content: String): String? {
-    return stickerPattern.find(content)?.groupValues?.get(1)
+    return extractStickerInfo(content)?.id
 }
 
 private fun stickerUrl(id: String): String {

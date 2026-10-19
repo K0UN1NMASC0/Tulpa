@@ -17,8 +17,17 @@ import me.rerere.rikkahub.data.datastore.getQuickMessagesOfAssistant
  */
 object StickerListTransformer : InputMessageTransformer {
 
-    // 匹配快捷消息中的 (表情包:xxx) 格式，提取 xxx 部分
+    // 匹配快捷消息中的 (表情包:xxx) 或 (表情包:xxx|URL) 格式，提取 xxx 部分
     private val stickerPattern = Regex("""\(表情包:(.+?)\)""")
+
+    /**
+     * 从匹配到的原始内容中提取纯 ID（去掉 |URL 部分）。
+     * 例: "亲亲" → "亲亲", "新表情|https://example.com/img.png" → "新表情"
+     */
+    private fun extractPureId(raw: String): String {
+        val pipeIndex = raw.indexOf('|')
+        return if (pipeIndex > 0) raw.substring(0, pipeIndex).trim() else raw
+    }
 
     override suspend fun transform(
         ctx: TransformerContext,
@@ -27,9 +36,9 @@ object StickerListTransformer : InputMessageTransformer {
         val quickMessages = ctx.settings.getQuickMessagesOfAssistant(ctx.assistant)
         if (quickMessages.isEmpty()) return messages
 
-        // 从快捷消息的 content 中提取表情包 ID
+        // 从快捷消息的 content 中提取表情包 ID（去掉自定义 URL 部分）
         val stickerIds = quickMessages.mapNotNull { qm ->
-            stickerPattern.find(qm.content)?.groupValues?.getOrNull(1)
+            stickerPattern.find(qm.content)?.groupValues?.getOrNull(1)?.let { extractPureId(it) }
         }.distinct()
 
         if (stickerIds.isEmpty()) return messages
