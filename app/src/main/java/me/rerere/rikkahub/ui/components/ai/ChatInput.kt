@@ -69,6 +69,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Popup
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
@@ -877,7 +878,6 @@ private fun StickerThumbnail(
                 onError = { loadFailed = true },
             )
         } else {
-            // Fallback: show ID text if custom URL fails
             Box(
                 modifier = modifier,
                 contentAlignment = Alignment.Center
