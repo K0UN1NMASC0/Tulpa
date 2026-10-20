@@ -867,12 +867,27 @@ private fun StickerThumbnail(
     modifier: Modifier = Modifier,
 ) {
     if (customUrl != null) {
-        AsyncImage(
-            model = customUrl,
-            contentDescription = contentDescription,
-            modifier = modifier,
-            contentScale = ContentScale.Fit,
-        )
+        var loadFailed by remember(customUrl) { mutableStateOf(false) }
+        if (!loadFailed) {
+            AsyncImage(
+                model = customUrl,
+                contentDescription = contentDescription,
+                modifier = modifier,
+                contentScale = ContentScale.Fit,
+                onError = { loadFailed = true },
+            )
+        } else {
+            // Fallback: show ID text if custom URL fails
+            Box(
+                modifier = modifier,
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "⚠",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+        }
     } else {
         var useFallback by remember(stickerId) { mutableStateOf(false) }
         val url = if (useFallback) stickerUrlGif(stickerId) else stickerUrl(stickerId)
