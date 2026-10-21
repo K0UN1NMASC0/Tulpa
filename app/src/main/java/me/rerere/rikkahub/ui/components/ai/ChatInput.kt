@@ -786,6 +786,7 @@ private fun StickerPanel(
             items(quickMessages.size) { index ->
                 val qm = quickMessages[index]
                 val stickerInfo = extractStickerInfo(qm.content)
+                val hasLocalImage = qm.localImagePath != null
 
                 Surface(
                     onClick = { onSelect(qm) },
@@ -797,7 +798,15 @@ private fun StickerPanel(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(6.dp)
                     ) {
-                        if (stickerInfo != null) {
+                        if (hasLocalImage) {
+                            // Load from local file (picked from gallery)
+                            AsyncImage(
+                                model = java.io.File(qm.localImagePath!!),
+                                contentDescription = qm.title,
+                                modifier = Modifier.size(48.dp),
+                                contentScale = ContentScale.Fit,
+                            )
+                        } else if (stickerInfo != null) {
                             StickerThumbnail(
                                 stickerId = stickerInfo.id,
                                 customUrl = stickerInfo.customUrl,

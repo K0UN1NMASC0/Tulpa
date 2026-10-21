@@ -56,6 +56,7 @@ data class QuickMessage(
     val id: Uuid = Uuid.random(),
     val title: String = "",
     val content: String = "",
+    val localImagePath: String? = null, // 本地表情包图片路径（从相册选择时保存）
 )
 
 @Serializable

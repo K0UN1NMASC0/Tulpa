@@ -1,5 +1,8 @@
 package me.rerere.rikkahub.ui.pages.extensions
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
@@ -20,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -33,15 +38,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Add01
 import me.rerere.hugeicons.stroke.Delete01
 import me.rerere.hugeicons.stroke.Edit01
+import me.rerere.hugeicons.stroke.Image01
 import me.rerere.hugeicons.stroke.MoreVertical
 import me.rerere.hugeicons.stroke.Zap
 import me.rerere.rikkahub.R
@@ -51,6 +61,7 @@ import me.rerere.rikkahub.ui.components.ui.RikkaConfirmDialog
 import me.rerere.rikkahub.ui.theme.CustomColors
 import me.rerere.rikkahub.utils.plus
 import org.koin.androidx.compose.koinViewModel
+import java.io.File
 
 @Composable
 fun QuickMessagesPage(vm: QuickMessagesVM = koinViewModel()) {
@@ -126,8 +137,8 @@ fun QuickMessagesPage(vm: QuickMessagesVM = koinViewModel()) {
             title = stringResource(R.string.quick_messages_page_add_title),
             initialQuickMessage = null,
             onDismiss = { showAddDialog = false },
-            onConfirm = { title, content ->
-                vm.addQuickMessage(title, content)
+            onConfirm = { qm ->
+                vm.addQuickMessage(qm.title, qm.content, qm.localImagePath)
                 showAddDialog = false
             },
         )
@@ -138,11 +149,12 @@ fun QuickMessagesPage(vm: QuickMessagesVM = koinViewModel()) {
             title = stringResource(R.string.quick_messages_page_edit_title),
             initialQuickMessage = quickMessage,
             onDismiss = { editTarget = null },
-            onConfirm = { title, content ->
+            onConfirm = { qm ->
                 vm.updateQuickMessage(
                     quickMessage.copy(
-                        title = title,
-                        content = content,
+                        title = qm.title,
+                        content = qm.content,
+                        localImagePath = qm.localImagePath,
                     )
                 )
                 editTarget = null
@@ -258,13 +270,46 @@ private fun EditQuickMessageDialog(
     title: String,
     initialQuickMessage: QuickMessage?,
     onDismiss: () -> Unit,
-    onConfirm: (title: String, content: String) -> Unit,
+    onConfirm: (QuickMessage) -> Unit,
 ) {
+    val context = LocalContext.current
     var quickMessageTitle by rememberSaveable(initialQuickMessage?.id) {
         mutableStateOf(initialQuickMessage?.title ?: "")
     }
     var quickMessageContent by rememberSaveable(initialQuickMessage?.id) {
         mutableStateOf(initialQuickMessage?.content ?: "")
+    }
+    var localImagePath by rememberSaveable(initialQuickMessage?.id) {
+        mutableStateOf(initialQuickMessage?.localImagePath)
+    }
+
+    // Copy picked image to app-internal storage so it persists
+    fun copyImageToInternal(uri: Uri): String? {
+        return try {
+            val stickersDir = File(context.filesDir, "stickers")
+            if (!stickersDir.exists()) stickersDir.mkdirs()
+            val fileName = "sticker_${System.currentTimeMillis()}.png"
+            val destFile = File(stickersDir, fileName)
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                destFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            destFile.absolutePath
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val path = copyImageToInternal(it)
+            if (path != null) {
+                localImagePath = path
+            }
+        }
     }
 
     AlertDialog(
@@ -287,11 +332,60 @@ private fun EditQuickMessageDialog(
                     minLines = 4,
                     maxLines = 8,
                 )
+                // Image picker section
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (localImagePath != null) {
+                        AsyncImage(
+                            model = File(localImagePath!!),
+                            contentDescription = "sticker preview",
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Fit,
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = { imagePickerLauncher.launch("image/*") },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            imageVector = HugeIcons.Image01,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = if (localImagePath != null) "更换图片" else "选择表情包图片",
+                            modifier = Modifier.padding(start = 4.dp),
+                        )
+                    }
+                    if (localImagePath != null) {
+                        IconButton(onClick = { localImagePath = null }) {
+                            Icon(
+                                imageVector = HugeIcons.Delete01,
+                                contentDescription = "remove image",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(quickMessageTitle.trim(), quickMessageContent.trim()) },
+                onClick = {
+                    onConfirm(
+                        QuickMessage(
+                            title = quickMessageTitle.trim(),
+                            content = quickMessageContent.trim(),
+                            localImagePath = localImagePath,
+                        )
+                    )
+                },
                 enabled = quickMessageTitle.isNotBlank() && quickMessageContent.isNotBlank(),
             ) {
                 Text(stringResource(R.string.assistant_page_save))

@@ -16,11 +16,12 @@ class QuickMessagesVM(
     val settings = settingsStore.settingsFlow
         .stateIn(viewModelScope, SharingStarted.Lazily, Settings.dummy())
 
-    fun addQuickMessage(title: String, content: String) {
+    fun addQuickMessage(title: String, content: String, localImagePath: String? = null) {
         updateQuickMessages(
             settings.value.quickMessages + QuickMessage(
                 title = title,
                 content = content,
+                localImagePath = localImagePath,
             )
         )
     }
