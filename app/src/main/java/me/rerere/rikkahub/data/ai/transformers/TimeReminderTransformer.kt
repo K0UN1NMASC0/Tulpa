@@ -7,7 +7,6 @@ import kotlinx.datetime.toLocalDateTime
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
-import me.rerere.rikkahub.utils.toLocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.time.toJavaInstant
 
