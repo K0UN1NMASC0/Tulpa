@@ -1,14 +1,13 @@
 package me.rerere.rikkahub.data.ai.transformers
 
-import kotlin.time.Instant
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.toJavaInstant
 import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
 import java.time.format.DateTimeFormatter
-import kotlin.time.toJavaInstant
 
 // 显著时间事件阈值：距上条用户消息超过 2 小时才注入“经过时间”。
 // 灵感来自 See-Sol-Lab / Time Anchor：普通短间隔对话不该反复把时间塞进上下文，
@@ -90,7 +89,10 @@ private fun findPreviousUserInstant(
 
 /** 判断两个时刻是否落在不同的本地日期（跨天）。 */
 private fun isDifferentLocalDate(a: Instant, b: Instant, tz: TimeZone): Boolean {
-    return a.toLocalDateTime(tz).date != b.toLocalDateTime(tz).date
+    val zoneId = java.time.ZoneId.systemDefault()
+    val dateA = a.toJavaInstant().atZone(zoneId).toLocalDate()
+    val dateB = b.toJavaInstant().atZone(zoneId).toLocalDate()
+    return dateA != dateB
 }
 
 private val TIME_REMINDER_FORMATTER = DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm:ss")
