@@ -824,7 +824,9 @@ fun StickerInlineContent(
             AsyncImage(
                 model = finalModel,
                 contentDescription = stickerId,
-                modifier = modifier.size(if (stickerIds.size == 1) 150.dp else 120.dp),
+                modifier = modifier
+                    .size(if (stickerIds.size == 1) 150.dp else 120.dp)
+                    .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Fit,
                 onError = {
                     if (!useFallbackGif && imageModel is String) {
@@ -859,7 +861,9 @@ fun StickerAppendedImage(
     AsyncImage(
         model = finalModel,
         contentDescription = stickerId,
-        modifier = modifier.size(100.dp),
+        modifier = modifier
+            .size(100.dp)
+            .clip(RoundedCornerShape(12.dp)),
         contentScale = ContentScale.Fit,
         onError = {
             if (!useFallbackGif && imageModel is String) {
