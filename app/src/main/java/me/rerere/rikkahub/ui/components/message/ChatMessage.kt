@@ -398,7 +398,7 @@ private fun MessagePartsBlock(
                             if (role == MessageRole.USER) {
                                 // Check if this is a pure sticker message
                                 val isStickerMsg = extractPureStickerIdFromText(part.text) != null
-                                val mixedStickerId = if (!isStickerMsg) extractMixedStickerId(part.text) else null
+                                val mixedStickerIds = if (!isStickerMsg) extractMixedStickerIds(part.text) else emptyList()
                                 if (isStickerMsg) {
                                     Surface(
                                         modifier = Modifier.animateContentSize(),
@@ -424,7 +424,7 @@ private fun MessagePartsBlock(
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             MarkdownBlock(
-                                                content = (if (mixedStickerId != null) stripStickerTag(part.text) else part.text).replaceRegexes(
+                                                content = (if (mixedStickerIds.isNotEmpty()) stripStickerTag(part.text) else part.text).replaceRegexes(
                                                     assistant = assistant,
                                                     scope = AssistantAffectScope.USER,
                                                     visual = true,
@@ -432,12 +432,17 @@ private fun MessagePartsBlock(
                                                 style = userTextStyle,
                                                 onClickCitation = handleClickCitation
                                             )
-                                            if (mixedStickerId != null) {
-                                                StickerAppendedImage(
-                                                    stickerId = mixedStickerId,
-                                                    quickMessages = settings.quickMessages,
-                                                    modifier = Modifier.padding(top = 4.dp),
-                                                )
+                                            if (mixedStickerIds.isNotEmpty()) {
+                                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    mixedStickerIds.forEach { sid ->
+                                                        StickerAppendedImage(
+                                                            stickerId = sid,
+                                                            quickMessages = settings.quickMessages,
+                                                            modifier = Modifier.padding(top = 4.dp),
+                                                        )
+                                                    }
+                                                }
+                                            }
                                             }
                                         }
                                     }
@@ -445,7 +450,7 @@ private fun MessagePartsBlock(
                             } else {
                                 // Check if AI message is a pure sticker
                                 val isAiStickerMsg = extractPureStickerIdFromText(part.text) != null
-                                val aiMixedStickerId = if (!isAiStickerMsg) extractMixedStickerId(part.text) else null
+                                val aiMixedStickerIds = if (!isAiStickerMsg) extractMixedStickerIds(part.text) else emptyList()
                                 if (isAiStickerMsg) {
                                     Surface(
                                         modifier = Modifier.animateContentSize(),
@@ -469,7 +474,7 @@ private fun MessagePartsBlock(
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             MarkdownBlock(
-                                                content = (if (aiMixedStickerId != null) stripStickerTag(part.text) else part.text).replaceRegexes(
+                                                content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(part.text) else part.text).replaceRegexes(
                                                     assistant = assistant,
                                                     scope = AssistantAffectScope.ASSISTANT,
                                                     visual = true,
@@ -477,19 +482,23 @@ private fun MessagePartsBlock(
                                                 style = aiTextStyle,
                                                 onClickCitation = handleClickCitation,
                                             )
-                                            if (aiMixedStickerId != null) {
-                                                StickerAppendedImage(
-                                                    stickerId = aiMixedStickerId,
-                                                    quickMessages = settings.quickMessages,
-                                                    modifier = Modifier.padding(top = 4.dp),
-                                                )
+                                            if (aiMixedStickerIds.isNotEmpty()) {
+                                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    aiMixedStickerIds.forEach { sid ->
+                                                        StickerAppendedImage(
+                                                            stickerId = sid,
+                                                            quickMessages = settings.quickMessages,
+                                                            modifier = Modifier.padding(top = 4.dp),
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 } else {
                                     Column {
                                         MarkdownBlock(
-                                            content = (if (aiMixedStickerId != null) stripStickerTag(part.text) else part.text).replaceRegexes(
+                                            content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(part.text) else part.text).replaceRegexes(
                                                 assistant = assistant,
                                                 scope = AssistantAffectScope.ASSISTANT,
                                                 visual = true,
@@ -498,12 +507,16 @@ private fun MessagePartsBlock(
                                             modifier = Modifier
                                                 .animateContentSize()
                                         )
-                                        if (aiMixedStickerId != null) {
-                                            StickerAppendedImage(
-                                                stickerId = aiMixedStickerId,
-                                                quickMessages = settings.quickMessages,
-                                                modifier = Modifier.padding(top = 4.dp),
-                                            )
+                                        if (aiMixedStickerIds.isNotEmpty()) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                aiMixedStickerIds.forEach { sid ->
+                                                    StickerAppendedImage(
+                                                        stickerId = sid,
+                                                        quickMessages = settings.quickMessages,
+                                                        modifier = Modifier.padding(top = 4.dp),
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -731,28 +744,41 @@ private fun MessagePartsBlock(
 
 // ==================== Inline Sticker Rendering ====================
 
-private val inlineStickerPattern = Regex("""^\s*\(表情包:(.+?)\)\s*$""")
-private val mixedStickerPattern = Regex("""\(表情包:(.+?)\)""")
+private val stickerPattern = Regex("""\(表情包:(.+?)\)""")
 
 /**
- * 检测文本是否为纯表情包消息。
+ * 检测文本是否为纯表情包消息（可以是一个或多个连续表情包，中间允许空白）。
+ * 返回所有表情包ID列表，如果不是纯表情包消息则返回null。
  */
+private fun extractPureStickerIdsFromText(text: String): List<String>? {
+    val stripped = stickerPattern.replace(text, "").trim()
+    if (stripped.isNotEmpty()) return null
+    val ids = stickerPattern.findAll(text).map { it.groupValues[1] }.toList()
+    return ids.ifEmpty { null }
+}
+
+// Keep single-id version for backward compat with StickerInlineContent signature
 private fun extractPureStickerIdFromText(text: String): String? {
-    return inlineStickerPattern.find(text)?.groupValues?.get(1)
+    return extractPureStickerIdsFromText(text)?.firstOrNull()
 }
 
 /**
- * 从混合内容中提取表情包ID（如果存在）。
+ * 从混合内容中提取所有表情包ID（如果存在）。
  */
+private fun extractMixedStickerIds(text: String): List<String> {
+    return stickerPattern.findAll(text).map { it.groupValues[1] }.toList()
+}
+
+// Keep single-id version for call-sites that only need first
 private fun extractMixedStickerId(text: String): String? {
-    return mixedStickerPattern.find(text)?.groupValues?.get(1)
+    return stickerPattern.find(text)?.groupValues?.get(1)
 }
 
 /**
  * 从混合内容中移除表情包标签，返回纯文本部分。
  */
 private fun stripStickerTag(text: String): String {
-    return mixedStickerPattern.replace(text, "").trim()
+    return stickerPattern.replace(text, "").trim()
 }
 
 /**
@@ -773,6 +799,7 @@ private fun resolveStickerImageModel(stickerId: String, quickMessages: List<Quic
 
 /**
  * 表情包内联渲染组件（纯表情包消息用）。
+ * 支持渲染一个或多个表情包。
  * 返回true表示成功渲染为图片。
  */
 @Composable
@@ -781,27 +808,32 @@ fun StickerInlineContent(
     quickMessages: List<QuickMessage>,
     modifier: Modifier = Modifier,
 ): Boolean {
-    val stickerId = extractPureStickerIdFromText(text) ?: return false
-    val imageModel = resolveStickerImageModel(stickerId, quickMessages)
+    val stickerIds = extractPureStickerIdsFromText(text) ?: return false
 
-    var useFallbackGif by remember(stickerId) { mutableStateOf(false) }
-    val finalModel = if (useFallbackGif && imageModel is String) {
-        imageModel.replace(".png", ".gif")
-    } else {
-        imageModel
-    }
-
-    AsyncImage(
-        model = finalModel,
-        contentDescription = stickerId,
-        modifier = modifier.size(150.dp),
-        contentScale = ContentScale.Fit,
-        onError = {
-            if (!useFallbackGif && imageModel is String) {
-                useFallbackGif = true
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        for (stickerId in stickerIds) {
+            val imageModel = resolveStickerImageModel(stickerId, quickMessages)
+            var useFallbackGif by remember(stickerId) { mutableStateOf(false) }
+            val finalModel = if (useFallbackGif && imageModel is String) {
+                imageModel.replace(".png", ".gif")
+            } else {
+                imageModel
             }
-        },
-    )
+            AsyncImage(
+                model = finalModel,
+                contentDescription = stickerId,
+                modifier = modifier.size(if (stickerIds.size == 1) 150.dp else 120.dp),
+                contentScale = ContentScale.Fit,
+                onError = {
+                    if (!useFallbackGif && imageModel is String) {
+                        useFallbackGif = true
+                    }
+                },
+            )
+        }
+    }
     return true
 }
 
