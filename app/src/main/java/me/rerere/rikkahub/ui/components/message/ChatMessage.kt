@@ -97,6 +97,9 @@ import me.rerere.rikkahub.utils.urlDecode
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 import androidx.compose.foundation.BorderStroke
+import coil3.compose.AsyncImage
+import me.rerere.rikkahub.data.model.QuickMessage
+import androidx.compose.ui.layout.ContentScale
 
 @Composable
 fun ChatMessage(
@@ -393,27 +396,43 @@ private fun MessagePartsBlock(
                         }
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
-                                Surface(
-                                    modifier = Modifier.animateContentSize(),
-                                    shape = userBubbleShape,
-                                    color = userBubbleColor,
-                                    border = bubbleBorder,
-                                    onClick = { onUserMessageClick?.invoke() },
-                                ) {
-                                    Column(modifier = Modifier.padding(8.dp)) {
-                                        MarkdownBlock(
-                                            content = part.text.replaceRegexes(
-                                                assistant = assistant,
-                                                scope = AssistantAffectScope.USER,
-                                                visual = true,
-                                            ),
-                                            style = userTextStyle,
-                                            onClickCitation = handleClickCitation
-                                        )
+                                // Check if this is a pure sticker message
+                                val isStickerMsg = extractPureStickerIdFromText(part.text) != null
+                                if (isStickerMsg) {
+                                    StickerInlineContent(
+                                        text = part.text,
+                                        quickMessages = settings.quickMessages,
+                                    )
+                                } else {
+                                    Surface(
+                                        modifier = Modifier.animateContentSize(),
+                                        shape = userBubbleShape,
+                                        color = userBubbleColor,
+                                        border = bubbleBorder,
+                                        onClick = { onUserMessageClick?.invoke() },
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            MarkdownBlock(
+                                                content = part.text.replaceRegexes(
+                                                    assistant = assistant,
+                                                    scope = AssistantAffectScope.USER,
+                                                    visual = true,
+                                                ),
+                                                style = userTextStyle,
+                                                onClickCitation = handleClickCitation
+                                            )
+                                        }
                                     }
                                 }
                             } else {
-                                if (settings.displaySetting.showAssistantBubble) {
+                                // Check if AI message is a pure sticker
+                                val isAiStickerMsg = extractPureStickerIdFromText(part.text) != null
+                                if (isAiStickerMsg) {
+                                    StickerInlineContent(
+                                        text = part.text,
+                                        quickMessages = settings.quickMessages,
+                                    )
+                                } else if (settings.displaySetting.showAssistantBubble) {
                                     Surface(
                                         modifier = Modifier.animateContentSize(),
                                         shape = aiBubbleShape,
@@ -664,4 +683,66 @@ private fun MessagePartsBlock(
             }
         }
     }
+}
+
+// ==================== Inline Sticker Rendering ====================
+
+private val inlineStickerPattern = Regex("""^\s*\(表情包:(.+?)\)\s*$""")
+
+/**
+ * 检测文本是否为纯表情包消息。
+ * 如果是，返回表情包ID；否则返回null。
+ */
+private fun extractPureStickerIdFromText(text: String): String? {
+    return inlineStickerPattern.find(text)?.groupValues?.get(1)
+}
+
+/**
+ * 根据表情包ID查找对应的图片来源：
+ * 1. 优先查找quickMessages中的localImagePath
+ * 2. 其次尝试GitHub stickers仓库的URL
+ */
+private fun resolveStickerImageModel(stickerId: String, quickMessages: List<QuickMessage>): Any? {
+    val localMatch = quickMessages.firstOrNull { qm ->
+        qm.localImagePath != null && qm.content.contains("(表情包:$stickerId)")
+    }
+    if (localMatch?.localImagePath != null) {
+        return java.io.File(localMatch.localImagePath)
+    }
+    val encoded = java.net.URLEncoder.encode(stickerId, "UTF-8").replace("+", "%20")
+    return "https://raw.githubusercontent.com/K0UN1NMASC0/stickers/main/$encoded.png"
+}
+
+/**
+ * 表情包内联渲染组件。
+ * 如果整条消息是纯表情包，渲染为图片并返回true；否则返回false。
+ */
+@Composable
+fun StickerInlineContent(
+    text: String,
+    quickMessages: List<QuickMessage>,
+    modifier: Modifier = Modifier,
+): Boolean {
+    val stickerId = extractPureStickerIdFromText(text) ?: return false
+    val imageModel = resolveStickerImageModel(stickerId, quickMessages)
+
+    var useFallbackGif by remember(stickerId) { mutableStateOf(false) }
+    val finalModel = if (useFallbackGif && imageModel is String) {
+        imageModel.replace(".png", ".gif")
+    } else {
+        imageModel
+    }
+
+    AsyncImage(
+        model = finalModel,
+        contentDescription = stickerId,
+        modifier = modifier.size(120.dp),
+        contentScale = ContentScale.Fit,
+        onError = {
+            if (!useFallbackGif && imageModel is String) {
+                useFallbackGif = true
+            }
+        },
+    )
+    return true
 }
