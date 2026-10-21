@@ -8,6 +8,7 @@ import me.rerere.ai.core.MessageRole
 import me.rerere.ai.ui.UIMessage
 import me.rerere.ai.ui.UIMessagePart
 import me.rerere.rikkahub.utils.toLocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlin.time.toJavaInstant
 
 // 显著时间事件阈值：距上条用户消息超过 2 小时才注入“经过时间”。
@@ -93,9 +94,13 @@ private fun isDifferentLocalDate(a: Instant, b: Instant, tz: TimeZone): Boolean 
     return a.toLocalDateTime(tz).date != b.toLocalDateTime(tz).date
 }
 
+private val TIME_REMINDER_FORMATTER = DateTimeFormatter.ofPattern("yyyy年M月d日 HH:mm:ss")
+
 private fun buildTimeReminderMessage(gapSeconds: Long?, instant: Instant): UIMessage {
     val javaInstant = instant.toJavaInstant()
-    val timeStr = javaInstant.toLocalDateTime()
+    val zoneId = java.time.ZoneId.systemDefault()
+    val localDateTime = javaInstant.atZone(zoneId).toLocalDateTime()
+    val timeStr = TIME_REMINDER_FORMATTER.format(localDateTime)
     val content = if (gapSeconds != null) {
         val gapText = formatGap(gapSeconds)
         "<time_reminder>系统注入·仅AI可见 | 当前时间: $timeStr | 距用户上条消息: $gapText</time_reminder>"
