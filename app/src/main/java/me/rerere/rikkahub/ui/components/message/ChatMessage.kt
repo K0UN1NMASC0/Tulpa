@@ -397,8 +397,8 @@ private fun MessagePartsBlock(
                         val textContent = @Composable {
                             if (role == MessageRole.USER) {
                                 // Check if this is a pure sticker message
-                                val isStickerMsg = extractPureStickerIdFromText(part.text) != null
-                                val mixedStickerIds = if (!isStickerMsg) extractMixedStickerIds(part.text) else emptyList()
+                                val isStickerMsg = isPureStickerMessage(part.text)
+                                val mixedStickerIds = if (!isStickerMsg) extractAllStickerIds(part.text) else emptyList()
                                 if (isStickerMsg) {
                                     Surface(
                                         modifier = Modifier.animateContentSize(),
@@ -443,14 +443,13 @@ private fun MessagePartsBlock(
                                                     }
                                                 }
                                             }
-                                            }
                                         }
                                     }
                                 }
                             } else {
                                 // Check if AI message is a pure sticker
-                                val isAiStickerMsg = extractPureStickerIdFromText(part.text) != null
-                                val aiMixedStickerIds = if (!isAiStickerMsg) extractMixedStickerIds(part.text) else emptyList()
+                                val isAiStickerMsg = isPureStickerMessage(part.text)
+                                val aiMixedStickerIds = if (!isAiStickerMsg) extractAllStickerIds(part.text) else emptyList()
                                 if (isAiStickerMsg) {
                                     Surface(
                                         modifier = Modifier.animateContentSize(),
@@ -747,29 +746,28 @@ private fun MessagePartsBlock(
 private val stickerPattern = Regex("""\(表情包:(.+?)\)""")
 
 /**
- * 检测文本是否为纯表情包消息（可以是一个或多个连续表情包，中间允许空白）。
- * 返回所有表情包ID列表，如果不是纯表情包消息则返回null。
+ * 检测文本是否为纯表情包消息（一个或多个连续表情包，中间允许空白）。
  */
-private fun extractPureStickerIdsFromText(text: String): List<String>? {
-    val stripped = stickerPattern.replace(text, "").trim()
-    if (stripped.isNotEmpty()) return null
-    val ids = stickerPattern.findAll(text).map { it.groupValues[1] }.toList()
-    return ids.ifEmpty { null }
-}
-
-// Keep single-id version for backward compat with StickerInlineContent signature
 private fun extractPureStickerIdFromText(text: String): String? {
-    return extractPureStickerIdsFromText(text)?.firstOrNull()
+    val ids = extractAllStickerIds(text)
+    if (ids.isEmpty()) return null
+    val stripped = stickerPattern.replace(text, "").trim()
+    return if (stripped.isEmpty()) ids.first() else null
 }
 
-/**
- * 从混合内容中提取所有表情包ID（如果存在）。
- */
-private fun extractMixedStickerIds(text: String): List<String> {
+private fun extractAllStickerIds(text: String): List<String> {
     return stickerPattern.findAll(text).map { it.groupValues[1] }.toList()
 }
 
-// Keep single-id version for call-sites that only need first
+private fun isPureStickerMessage(text: String): Boolean {
+    val ids = extractAllStickerIds(text)
+    if (ids.isEmpty()) return false
+    return stickerPattern.replace(text, "").trim().isEmpty()
+}
+
+/**
+ * 从混合内容中提取表情包ID（如果存在）。
+ */
 private fun extractMixedStickerId(text: String): String? {
     return stickerPattern.find(text)?.groupValues?.get(1)
 }
@@ -799,7 +797,6 @@ private fun resolveStickerImageModel(stickerId: String, quickMessages: List<Quic
 
 /**
  * 表情包内联渲染组件（纯表情包消息用）。
- * 支持渲染一个或多个表情包。
  * 返回true表示成功渲染为图片。
  */
 @Composable
@@ -808,7 +805,8 @@ fun StickerInlineContent(
     quickMessages: List<QuickMessage>,
     modifier: Modifier = Modifier,
 ): Boolean {
-    val stickerIds = extractPureStickerIdsFromText(text) ?: return false
+    if (!isPureStickerMessage(text)) return false
+    val stickerIds = extractAllStickerIds(text)
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
