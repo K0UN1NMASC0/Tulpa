@@ -400,10 +400,20 @@ private fun MessagePartsBlock(
                                 val isStickerMsg = extractPureStickerIdFromText(part.text) != null
                                 val mixedStickerId = if (!isStickerMsg) extractMixedStickerId(part.text) else null
                                 if (isStickerMsg) {
-                                    StickerInlineContent(
-                                        text = part.text,
-                                        quickMessages = settings.quickMessages,
-                                    )
+                                    Surface(
+                                        modifier = Modifier.animateContentSize(),
+                                        shape = userBubbleShape,
+                                        color = userBubbleColor,
+                                        border = bubbleBorder,
+                                        onClick = { onUserMessageClick?.invoke() },
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            StickerInlineContent(
+                                                text = part.text,
+                                                quickMessages = settings.quickMessages,
+                                            )
+                                        }
+                                    }
                                 } else {
                                     Column {
                                         Surface(
@@ -439,10 +449,19 @@ private fun MessagePartsBlock(
                                 val isAiStickerMsg = extractPureStickerIdFromText(part.text) != null
                                 val aiMixedStickerId = if (!isAiStickerMsg) extractMixedStickerId(part.text) else null
                                 if (isAiStickerMsg) {
-                                    StickerInlineContent(
-                                        text = part.text,
-                                        quickMessages = settings.quickMessages,
-                                    )
+                                    Surface(
+                                        modifier = Modifier.animateContentSize(),
+                                        shape = aiBubbleShape,
+                                        color = aiBubbleColor,
+                                        border = bubbleBorder,
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            StickerInlineContent(
+                                                text = part.text,
+                                                quickMessages = settings.quickMessages,
+                                            )
+                                        }
+                                    }
                                 } else if (settings.displaySetting.showAssistantBubble) {
                                     Column {
                                         Surface(
