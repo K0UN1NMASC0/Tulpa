@@ -415,32 +415,30 @@ private fun MessagePartsBlock(
                                         }
                                     }
                                 } else {
-                                    Column {
-                                        Surface(
-                                            modifier = Modifier.animateContentSize(),
-                                            shape = userBubbleShape,
-                                            color = userBubbleColor,
-                                            border = bubbleBorder,
-                                            onClick = { onUserMessageClick?.invoke() },
-                                        ) {
-                                            Column(modifier = Modifier.padding(8.dp)) {
-                                                MarkdownBlock(
-                                                    content = (if (mixedStickerId != null) stripStickerTag(part.text) else part.text).replaceRegexes(
-                                                        assistant = assistant,
-                                                        scope = AssistantAffectScope.USER,
-                                                        visual = true,
-                                                    ),
-                                                    style = userTextStyle,
-                                                    onClickCitation = handleClickCitation
+                                    Surface(
+                                        modifier = Modifier.animateContentSize(),
+                                        shape = userBubbleShape,
+                                        color = userBubbleColor,
+                                        border = bubbleBorder,
+                                        onClick = { onUserMessageClick?.invoke() },
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            MarkdownBlock(
+                                                content = (if (mixedStickerId != null) stripStickerTag(part.text) else part.text).replaceRegexes(
+                                                    assistant = assistant,
+                                                    scope = AssistantAffectScope.USER,
+                                                    visual = true,
+                                                ),
+                                                style = userTextStyle,
+                                                onClickCitation = handleClickCitation
+                                            )
+                                            if (mixedStickerId != null) {
+                                                StickerAppendedImage(
+                                                    stickerId = mixedStickerId,
+                                                    quickMessages = settings.quickMessages,
+                                                    modifier = Modifier.padding(top = 4.dp),
                                                 )
                                             }
-                                        }
-                                        if (mixedStickerId != null) {
-                                            StickerAppendedImage(
-                                                stickerId = mixedStickerId,
-                                                quickMessages = settings.quickMessages,
-                                                modifier = Modifier.padding(top = 4.dp),
-                                            )
                                         }
                                     }
                                 }
@@ -463,31 +461,29 @@ private fun MessagePartsBlock(
                                         }
                                     }
                                 } else if (settings.displaySetting.showAssistantBubble) {
-                                    Column {
-                                        Surface(
-                                            modifier = Modifier.animateContentSize(),
-                                            shape = aiBubbleShape,
-                                            color = aiBubbleColor,
-                                            border = bubbleBorder,
-                                        ) {
-                                            Column(modifier = Modifier.padding(8.dp)) {
-                                                MarkdownBlock(
-                                                    content = (if (aiMixedStickerId != null) stripStickerTag(part.text) else part.text).replaceRegexes(
-                                                        assistant = assistant,
-                                                        scope = AssistantAffectScope.ASSISTANT,
-                                                        visual = true,
-                                                    ),
-                                                    style = aiTextStyle,
-                                                    onClickCitation = handleClickCitation,
+                                    Surface(
+                                        modifier = Modifier.animateContentSize(),
+                                        shape = aiBubbleShape,
+                                        color = aiBubbleColor,
+                                        border = bubbleBorder,
+                                    ) {
+                                        Column(modifier = Modifier.padding(8.dp)) {
+                                            MarkdownBlock(
+                                                content = (if (aiMixedStickerId != null) stripStickerTag(part.text) else part.text).replaceRegexes(
+                                                    assistant = assistant,
+                                                    scope = AssistantAffectScope.ASSISTANT,
+                                                    visual = true,
+                                                ),
+                                                style = aiTextStyle,
+                                                onClickCitation = handleClickCitation,
+                                            )
+                                            if (aiMixedStickerId != null) {
+                                                StickerAppendedImage(
+                                                    stickerId = aiMixedStickerId,
+                                                    quickMessages = settings.quickMessages,
+                                                    modifier = Modifier.padding(top = 4.dp),
                                                 )
                                             }
-                                        }
-                                        if (aiMixedStickerId != null) {
-                                            StickerAppendedImage(
-                                                stickerId = aiMixedStickerId,
-                                                quickMessages = settings.quickMessages,
-                                                modifier = Modifier.padding(top = 4.dp),
-                                            )
                                         }
                                     }
                                 } else {
