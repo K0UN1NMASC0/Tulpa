@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.time.toJavaInstant
 
 private const val TIME_GAP_THRESHOLD_SECONDS = 7200L
+private const val ALWAYS_INJECT_MIN_GAP_SECONDS = 300L
 
 object TimeReminderTransformer : InputMessageTransformer {
     override suspend fun transform(
@@ -40,7 +41,7 @@ internal fun applyTimeReminder(messages: List<UIMessage>): List<UIMessage> {
                 if (prevUserInstant != null) {
                     val gapSeconds = (currInstant - prevUserInstant).inWholeSeconds
                     val crossedDate = isDifferentLocalDate(prevUserInstant, currInstant, tz)
-                    if (gapSeconds > TIME_GAP_THRESHOLD_SECONDS || crossedDate) {
+                    if (gapSeconds >= ALWAYS_INJECT_MIN_GAP_SECONDS || crossedDate) {
                         result.add(buildTimeReminderMessage(gapSeconds, currInstant))
                     }
                 }
