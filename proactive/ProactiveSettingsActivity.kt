@@ -79,6 +79,7 @@ private fun ProactiveSettingsScreen() {
     var modelId by remember { mutableStateOf(prefs.getString("proactive_model_id", "") ?: "") }
     var interval by remember { mutableStateOf(prefs.getInt("proactive_interval", 180).toString()) }
     var fingertipsUrl by remember { mutableStateOf(prefs.getString("fingertips_url", "") ?: "") }
+    var maxTokens by remember { mutableStateOf(prefs.getInt("proactive_max_tokens", 800).toString()) }
 
     // 连接测试结果（每行URL的通/不通状态）
     val scope = rememberCoroutineScope()
@@ -291,9 +292,32 @@ private fun ProactiveSettingsScreen() {
                         )
 
                         OutlinedTextField(
+                            value = maxTokens,
+                            onValueChange = { maxTokens = it },
+                            label = { Text("Max Tokens (主动消息最大长度)") },
+                            placeholder = { Text("800") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = TulpaPinkButton,
+                                unfocusedBorderColor = TulpaPinkAccent,
+                                cursorColor = TulpaPinkButton
+                            )
+                        )
+
+                        Text(
+                            "\uD83D\uDCA1 \u5EFA\u8BAE 600+\uFF0C\u592A\u5C0F\u4F1A\u622A\u65AD\u3002\u4E0D\u8BBE\u4E0A\u9650\uFF0C\u968F\u4F60\u586B\u3002",
+                            fontSize = 11.sp,
+                            color = TulpaPinkDark,
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+
+                        OutlinedTextField(
                             value = fingertipsUrl,
                             onValueChange = { fingertipsUrl = it },
-                            label = { Text("Fingertips URL (可选)") },
+                            label = { Text("Fingertips URL (\u53EF\u9009)") },
                             placeholder = { Text("http://192.168.0.106:18002") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
@@ -334,11 +358,14 @@ private fun ProactiveSettingsScreen() {
                                     return@Button
                                 }
 
+                                val tokens = maxTokens.trim().toIntOrNull() ?: 800
+
                                 prefs.edit()
                                     .putString("proactive_base_url", url)
                                     .putString("proactive_api_key", key)
                                     .putString("proactive_model_id", model)
                                     .putInt("proactive_interval", mins)
+                                    .putInt("proactive_max_tokens", tokens)
                                     .apply()
 
                                 // "保存并启用" → 同时开启开关并持久化
@@ -377,6 +404,7 @@ private fun ProactiveSettingsScreen() {
                                     .putString("proactive_api_key", key)
                                     .putString("proactive_model_id", model)
                                     .putInt("proactive_interval", interval.trim().toIntOrNull() ?: 180)
+                                    .putInt("proactive_max_tokens", maxTokens.trim().toIntOrNull() ?: 800)
                                     .apply()
 
                                 // 立刻触发一次

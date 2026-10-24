@@ -318,10 +318,12 @@ class ProactiveMessageWorker(
             put(JSONObject().put("role", "user").put("content", "请决定是否发消息。没话说就回复 [PASS]。"))
         }
 
+        val maxTokens = prefs.getInt("proactive_max_tokens", 800)
+
         val bodyJson = JSONObject()
             .put("model", modelId)
             .put("messages", messages)
-            .put("max_tokens", 300)
+            .put("max_tokens", maxTokens)
             .put("temperature", 0.9)
             .toString()
 
