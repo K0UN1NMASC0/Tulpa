@@ -68,43 +68,69 @@ class ProactiveMessageWorker(
         }
 
         /**
-         * 依次尝试候选 URL，返回第一个能成功拿到响应体的结果。
-         * 全部失败则返回 null。
+         * 把模型名字段拆成候选列表。
+         * 支持用逗号 / 分号分隔多个模型，从左到右依次尝试。
+         */
+        fun parseModels(raw: String): List<String> {
+            return raw.split(',', ';', '，', '；')
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+                .distinct()
+        }
+
+        /**
+         * 依次尝试候选 URL × 候选 Model 的组合，返回第一个成功的结果。
+         * 外层循环 model，内层循环 URL：先用第一个模型试所有URL，
+         * 全部失败再换下一个模型。全部组合失败则返回 null。
          */
         fun requestWithFallback(
             baseUrls: List<String>,
             apiKey: String,
-            bodyJson: String
+            bodyJson: String,
+            models: List<String> = emptyList()
         ): String? {
-            val body = bodyJson.toRequestBody("application/json".toMediaType())
-            for ((index, base) in baseUrls.withIndex()) {
-                // 除最后一个候选外，都用短超时探测，好尽快 fallback
-                val client = if (index == baseUrls.lastIndex) httpClient else probeClient
-                try {
-                    val request = Request.Builder()
-                        .url("$base/chat/completions")
-                        .addHeader("Authorization", "Bearer $apiKey")
-                        .addHeader("Content-Type", "application/json")
-                        .post(body)
-                        .build()
-                    val response = client.newCall(request).execute()
-                    if (response.isSuccessful) {
-                        val bodyText = response.body?.string()
-                        if (!bodyText.isNullOrBlank()) {
-                            Log.d(TAG, "URL[$index] ok: $base")
-                            return bodyText
+            // 如果传入了多模型列表，逐个尝试；否则直接用 bodyJson 里已有的 model
+            val modelsToTry = if (models.size > 1) models else listOf("")
+            for ((mi, model) in modelsToTry.withIndex()) {
+                val actualBody = if (model.isNotBlank()) {
+                    // 替换 bodyJson 中的 model 字段
+                    try {
+                        val json = JSONObject(bodyJson)
+                        json.put("model", model)
+                        json.toString()
+                    } catch (e: Exception) { bodyJson }
+                } else bodyJson
+
+                val body = actualBody.toRequestBody("application/json".toMediaType())
+                for ((ui, base) in baseUrls.withIndex()) {
+                    val client = if (ui == baseUrls.lastIndex && mi == modelsToTry.lastIndex) httpClient else probeClient
+                    try {
+                        val request = Request.Builder()
+                            .url("$base/chat/completions")
+                            .addHeader("Authorization", "Bearer $apiKey")
+                            .addHeader("Content-Type", "application/json")
+                            .post(body)
+                            .build()
+                        val response = client.newCall(request).execute()
+                        if (response.isSuccessful) {
+                            val bodyText = response.body?.string()
+                            if (!bodyText.isNullOrBlank()) {
+                                val label = if (model.isNotBlank()) "model=$model " else ""
+                                Log.d(TAG, "${label}URL[$ui] ok: $base")
+                                return bodyText
+                            } else {
+                                Log.w(TAG, "URL[$ui] 200 but empty body, trying next: $base")
+                            }
                         } else {
-                            Log.w(TAG, "URL[$index] 200 but empty body, trying next: $base")
+                            Log.w(TAG, "model[$mi]=$model URL[$ui] http ${response.code}: $base")
+                            response.close()
                         }
-                    } else {
-                        Log.w(TAG, "URL[$index] http ${response.code}: $base")
-                        response.close()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "model[$mi]=$model URL[$ui] failed ($base): ${e.message}")
                     }
-                } catch (e: Exception) {
-                    Log.w(TAG, "URL[$index] failed ($base): ${e.message}")
                 }
             }
-            Log.e(TAG, "All ${baseUrls.size} candidate URLs failed")
+            Log.e(TAG, "All ${modelsToTry.size} models x ${baseUrls.size} URLs failed")
             return null
         }
     }
@@ -152,7 +178,9 @@ class ProactiveMessageWorker(
         val baseUrlRaw = prefs.getString("proactive_base_url", "") ?: ""
         val baseUrls = parseBaseUrls(baseUrlRaw)
         val apiKey = prefs.getString("proactive_api_key", "") ?: ""
-        val modelId = prefs.getString("proactive_model_id", "") ?: ""
+        val modelIdRaw = prefs.getString("proactive_model_id", "") ?: ""
+        val models = parseModels(modelIdRaw)
+        val modelId = models.firstOrNull() ?: ""
         if (baseUrls.isEmpty() || apiKey.isBlank() || modelId.isBlank()) return
 
         val daysInMonth = calendar.getActualMaximum(java.util.Calendar.DAY_OF_MONTH)
@@ -177,7 +205,7 @@ class ProactiveMessageWorker(
             .toString()
 
         try {
-            val responseText = requestWithFallback(baseUrls, apiKey, bodyJson)
+            val responseText = requestWithFallback(baseUrls, apiKey, bodyJson, models)
             if (responseText == null) {
                 Log.e(TAG, "Love letter generation failed: all URLs unreachable")
                 return
@@ -218,7 +246,9 @@ class ProactiveMessageWorker(
         val baseUrlRaw = prefs.getString("proactive_base_url", "") ?: ""
         val baseUrls = parseBaseUrls(baseUrlRaw)
         val apiKey = prefs.getString("proactive_api_key", "") ?: ""
-        val modelId = prefs.getString("proactive_model_id", "") ?: ""
+        val modelIdRaw = prefs.getString("proactive_model_id", "") ?: ""
+        val models = parseModels(modelIdRaw)
+        val modelId = models.firstOrNull() ?: ""
 
         if (baseUrls.isEmpty() || apiKey.isBlank() || modelId.isBlank()) {
             Log.w(TAG, "Config incomplete")
@@ -327,7 +357,7 @@ class ProactiveMessageWorker(
             .put("temperature", 0.9)
             .toString()
 
-        val responseText = requestWithFallback(baseUrls, apiKey, bodyJson)
+        val responseText = requestWithFallback(baseUrls, apiKey, bodyJson, models)
         if (responseText == null) {
             Log.e(TAG, "API error: all URLs unreachable")
             return

@@ -263,8 +263,8 @@ private fun ProactiveSettingsScreen() {
                         OutlinedTextField(
                             value = modelId,
                             onValueChange = { modelId = it },
-                            label = { Text("Model") },
-                            placeholder = { Text("claude-sonnet-4-20250514") },
+                            label = { Text("Model\uFF08\u53EF\u9017\u53F7\u5206\u9694\u591A\u4E2A\uFF0C\u4F9D\u6B21\u81EA\u52A8\u5207\u6362\uFF09") },
+                            placeholder = { Text("claude-sonnet-4-20250514, gpt-4o") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
