@@ -54,6 +54,7 @@ jobs:
       - name: Process app icon
         run: |
           if [ -f "ic_launcher.png" ]; then
+            sudo apt-get update -qq
             sudo apt-get install -y imagemagick
             for size_dir in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
               dir=$(echo $size_dir | cut -d: -f1)
