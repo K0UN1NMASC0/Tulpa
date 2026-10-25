@@ -80,6 +80,7 @@ private fun ProactiveSettingsScreen() {
     var interval by remember { mutableStateOf(prefs.getInt("proactive_interval", 180).toString()) }
     var fingertipsUrl by remember { mutableStateOf(prefs.getString("fingertips_url", "") ?: "") }
     var maxTokens by remember { mutableStateOf(prefs.getInt("proactive_max_tokens", 800).toString()) }
+    var customPrompt by remember { mutableStateOf(prefs.getString("proactive_custom_prompt", "") ?: "") }
 
     // 连接测试结果（每行URL的通/不通状态）
     val scope = rememberCoroutineScope()
@@ -338,6 +339,51 @@ private fun ProactiveSettingsScreen() {
 
                         Spacer(modifier = Modifier.height(4.dp))
 
+                        Text(
+                            "主动消息提示词",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TulpaPinkDark
+                        )
+
+                        Text(
+                            "可用变量: \${idleMinutes} 距上次聊天分钟数, \${unansweredProactiveCount} 已连发未回复条数。留空则使用默认提示词。",
+                            fontSize = 11.sp,
+                            color = TulpaPinkDark.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = customPrompt,
+                            onValueChange = { customPrompt = it },
+                            label = { Text("自定义提示词（可选）") },
+                            placeholder = { Text("留空使用默认提示词") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = false,
+                            minLines = 4,
+                            maxLines = 10,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = TulpaPinkButton,
+                                unfocusedBorderColor = TulpaPinkAccent,
+                                cursorColor = TulpaPinkButton
+                            )
+                        )
+
+                        OutlinedButton(
+                            onClick = { customPrompt = "" },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = TulpaPinkButton
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, TulpaPinkAccent)
+                        ) {
+                            Text("✂️", fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("恢复默认提示词", fontWeight = FontWeight.Medium)
+                        }
+
                         // 保存按钮
                         Button(
                             onClick = {
@@ -366,9 +412,8 @@ private fun ProactiveSettingsScreen() {
                                     .putString("proactive_model_id", model)
                                     .putInt("proactive_interval", mins)
                                     .putInt("proactive_max_tokens", tokens)
+                                    .putString("proactive_custom_prompt", customPrompt.trim())
                                     .apply()
-
-                                // "保存并启用" → 同时开启开关并持久化
                                 enabled = true
                                 enabledPrefs.edit().putBoolean("enabled", true).apply()
 
@@ -405,6 +450,7 @@ private fun ProactiveSettingsScreen() {
                                     .putString("proactive_model_id", model)
                                     .putInt("proactive_interval", interval.trim().toIntOrNull() ?: 180)
                                     .putInt("proactive_max_tokens", maxTokens.trim().toIntOrNull() ?: 800)
+                                    .putString("proactive_custom_prompt", customPrompt.trim())
                                     .apply()
 
                                 // 立刻触发一次

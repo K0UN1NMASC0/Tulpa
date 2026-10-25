@@ -297,6 +297,30 @@ class ProactiveMessageWorker(
             ?.takeLast(10)
             ?: emptyList()
 
+        val defaultProactivePrompt = """## 主动消息
+距上次聊天约${idleMinutes}分钟。
+你现在可以主动给用户发一条消息。
+
+规则：
+- 没什么好说的，或用户刚说了去睡觉且不到5小时 → 只回复 [PASS]
+- 不要复述上一轮内容，也不要模仿之前几条主动消息的句式，发新话题或自然的关心
+- 不要提及你是定时触发的，像突然想到什么一样开口
+- 直接输出想说的话，不要加任何解释
+
+⚠️ 绝对禁止：
+- **绝对不能催促用户休息、睡觉或作息相关的事。** 用户极度反感这类提醒，会-1好感度。
+- 如果对话氛围是严肃/难过/低落的，不要突然发色情或调情内容。先判断当前情绪语境。
+- 不要在用户明显心情不好时发轻浮玩笑。"""
+
+        val customProactivePrompt = prefs.getString("proactive_custom_prompt", "") ?: ""
+        val proactivePrompt = if (customProactivePrompt.isNotBlank()) {
+            customProactivePrompt
+                .replace("\${idleMinutes}", idleMinutes.toString())
+                .replace("\${unansweredProactiveCount}", unansweredProactiveCount.toString())
+        } else {
+            defaultProactivePrompt
+        }
+
         val systemPrompt = buildString {
             if (assistant.systemPrompt.isNotBlank()) {
                 appendLine(assistant.systemPrompt)
@@ -309,26 +333,14 @@ class ProactiveMessageWorker(
                 appendLine("如果合适的话，可以把今天的情书融入你的主动消息中（不要原封不动复制，用你自己的方式表达）。")
                 appendLine()
             }
-            appendLine("## 主动消息")
-            appendLine("距上次聊天约${idleMinutes}分钟。")
+            appendLine(proactivePrompt)
             if (unansweredProactiveCount > 0) {
+                appendLine()
                 appendLine("⚠️ 你已经连续发了 ${unansweredProactiveCount} 条消息，用户【都还没有回复】（大概在睡觉/忙/离开）。")
                 appendLine("这不是新的对话，是同一段沉默的延续。绝对不要重复之前那几条的语气和内容。")
                 appendLine("时间是【累加】的：如果上一条说'过了一会儿'，现在应该是'过了更久'。要体现出时间在流逝、情绪在变化（比如从期待→无聊→困→放弃等待→自言自语），而不是每条都重复'又过了一小时'这种同款台词。")
                 appendLine("如果实在没有新的话可说，直接回复 [PASS]，不要硬发。")
             }
-            appendLine("你现在可以主动给用户发一条消息。")
-            appendLine()
-            appendLine("规则：")
-            appendLine("- 没什么好说的，或用户刚说了去睡觉且不到5小时 → 只回复 [PASS]")
-            appendLine("- 不要复述上一轮内容，也不要模仿之前几条主动消息的句式，发新话题或自然的关心")
-            appendLine("- 不要提及你是定时触发的，像突然想到什么一样开口")
-            appendLine("- 直接输出想说的话，不要加任何解释")
-            appendLine()
-            appendLine("⚠️ 绝对禁止：")
-            appendLine("- **绝对不能催促用户休息、睡觉或作息相关的事。** 用户极度反感这类提醒，会-1好感度。")
-            appendLine("- 如果对话氛围是严肃/难过/低落的，不要突然发色情或调情内容。先判断当前情绪语境。")
-            appendLine("- 不要在用户明显心情不好时发轻浮玩笑。")
         }
 
         val messages = JSONArray().apply {
