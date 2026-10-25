@@ -323,7 +323,6 @@ private fun ChatPageContent(
                     bigScreen = bigScreen,
                     drawerState = drawerState,
                     previewMode = previewMode,
-                    hazeState = hazeState,
                     onNewChat = {
                         navigateToChatPage(navController)
                     },
@@ -728,7 +727,6 @@ private fun TopBar(
     drawerState: DrawerState,
     bigScreen: Boolean,
     previewMode: Boolean,
-    hazeState: HazeState,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
     onUpdateTitle: (String) -> Unit
@@ -738,22 +736,8 @@ private fun TopBar(
     val titleState = useEditState<String> {
         onUpdateTitle(it)
     }
-    val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerLow
-    val topBarHazeStyle = if (settings.displaySetting.useLiquidGlass) {
-        HazeMaterials.ultraThin(containerColor = hazeTintColor.copy(alpha = 0.3f))
-    } else {
-        HazeMaterials.thin(containerColor = hazeTintColor)
-    }
-
     TopAppBar(
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = if (settings.displaySetting.enableBlurEffect) Color.Transparent else Color.Transparent),
-        modifier = if (settings.displaySetting.enableBlurEffect) Modifier.hazeEffect(
-            state = hazeState
-        ) {
-            blurEffect {
-                style = topBarHazeStyle
-            }
-        } else Modifier,
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         navigationIcon = {
             if (!bigScreen) {
                 IconButton(

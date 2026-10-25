@@ -147,8 +147,10 @@ fun ChatInput(
     val toaster = LocalToaster.current
     val assistant = settings.getCurrentAssistant()
     val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerLow
-    val inputHazeStyle = if (settings.displaySetting.useLiquidGlass) {
-        HazeMaterials.ultraThin(containerColor = hazeTintColor.copy(alpha = 0.3f))
+    val isLiquid = settings.displaySetting.useLiquidGlass
+    val isBlur = settings.displaySetting.enableBlurEffect
+    val inputHazeStyle = if (isLiquid) {
+        HazeMaterials.ultraThin(containerColor = hazeTintColor.copy(alpha = 0.15f))
     } else {
         HazeMaterials.thin(containerColor = hazeTintColor)
     }
@@ -226,7 +228,7 @@ fun ChatInput(
                     .fillMaxWidth()
                     .clip(containerShape)
                     .then(
-                        if (settings.displaySetting.enableBlurEffect) Modifier.hazeEffect(
+                        if (isBlur) Modifier.hazeEffect(
                             state = hazeState
                         ) {
                             blurEffect {
@@ -237,8 +239,12 @@ fun ChatInput(
                     ),
                 shape = containerShape,
                 tonalElevation = 0.dp,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                color = if (settings.displaySetting.enableBlurEffect) Color.Transparent else hazeTintColor,
+                border = BorderStroke(
+                    if (isLiquid) 0.5.dp else 1.dp,
+                    if (isLiquid) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                ),
+                color = if (isBlur) Color.Transparent else hazeTintColor,
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
