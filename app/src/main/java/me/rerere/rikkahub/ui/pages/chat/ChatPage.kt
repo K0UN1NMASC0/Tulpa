@@ -53,6 +53,10 @@ import androidx.core.net.toUri
 import com.dokar.sonner.ToastType
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.materials.HazeMaterials
+import dev.chrisbanes.haze.hazeEffect
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import me.rerere.ai.provider.Model
@@ -319,6 +323,7 @@ private fun ChatPageContent(
                     bigScreen = bigScreen,
                     drawerState = drawerState,
                     previewMode = previewMode,
+                    hazeState = hazeState,
                     onNewChat = {
                         navigateToChatPage(navController)
                     },
@@ -723,6 +728,7 @@ private fun TopBar(
     drawerState: DrawerState,
     bigScreen: Boolean,
     previewMode: Boolean,
+    hazeState: HazeState,
     onClickMenu: () -> Unit,
     onNewChat: () -> Unit,
     onUpdateTitle: (String) -> Unit
@@ -732,9 +738,18 @@ private fun TopBar(
     val titleState = useEditState<String> {
         onUpdateTitle(it)
     }
+    val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerLow
+    val topBarHazeStyle = HazeMaterials.thin(containerColor = hazeTintColor)
 
     TopAppBar(
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = if (settings.displaySetting.enableBlurEffect) Color.Transparent else Color.Transparent),
+        modifier = if (settings.displaySetting.enableBlurEffect) Modifier.hazeEffect(
+            state = hazeState
+        ) {
+            blurEffect {
+                style = topBarHazeStyle
+            }
+        } else Modifier,
         navigationIcon = {
             if (!bigScreen) {
                 IconButton(
