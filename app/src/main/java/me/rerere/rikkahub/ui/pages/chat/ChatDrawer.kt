@@ -838,15 +838,7 @@ private fun FolderBar(
                 onLongClick = {},
             )
         }
-        item {
-            FolderChip(
-                label = "主页",
-                icon = HugeIcons.Home01,
-                selected = false,
-                onClick = onHome,
-                onLongClick = {},
-            )
-        }
+        // 主页入口已移除
     }
 }
 
