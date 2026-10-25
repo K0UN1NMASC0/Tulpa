@@ -1,17 +1,21 @@
 package me.rerere.rikkahub.ui.pages.setting
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.data.datastore.DisplaySetting
+import me.rerere.rikkahub.data.datastore.GlassStyle
 import me.rerere.rikkahub.ui.components.nav.BackButton
 import me.rerere.rikkahub.ui.components.ui.CardGroup
 import me.rerere.rikkahub.ui.hooks.rememberSharedPreferenceBoolean
@@ -149,31 +154,55 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                         },
                     )
                     item(
-                        headlineContent = { Text(stringResource(R.string.setting_display_page_enable_blur_effect_title)) },
-                        supportingContent = { Text(stringResource(R.string.setting_display_page_enable_blur_effect_desc)) },
+                        headlineContent = { Text("玻璃效果") },
+                        supportingContent = { Text(
+                            when (displaySetting.glassStyle) {
+                                GlassStyle.NONE -> "关闭"
+                                GlassStyle.FROSTED -> "毛玻璃 — 经典磨砂质感"
+                                GlassStyle.LIQUID -> "液态玻璃 — 高透折射质感"
+                            }
+                        ) },
                         trailingContent = {
-                            Switch(
-                                checked = displaySetting.enableBlurEffect,
-                                onCheckedChange = {
-                                    updateDisplaySetting(displaySetting.copy(enableBlurEffect = it))
+                            var expanded by remember { mutableStateOf(false) }
+                            Box {
+                                TextButton(onClick = { expanded = true }) {
+                                    Text(
+                                        when (displaySetting.glassStyle) {
+                                            GlassStyle.NONE -> "关闭"
+                                            GlassStyle.FROSTED -> "毛玻璃"
+                                            GlassStyle.LIQUID -> "液态玻璃"
+                                        }
+                                    )
                                 }
-                            )
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("关闭") },
+                                        onClick = {
+                                            updateDisplaySetting(displaySetting.copy(glassStyle = GlassStyle.NONE))
+                                            expanded = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("毛玻璃") },
+                                        onClick = {
+                                            updateDisplaySetting(displaySetting.copy(glassStyle = GlassStyle.FROSTED))
+                                            expanded = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("液态玻璃") },
+                                        onClick = {
+                                            updateDisplaySetting(displaySetting.copy(glassStyle = GlassStyle.LIQUID))
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
                         },
                     )
-                    if (displaySetting.enableBlurEffect) {
-                        item(
-                            headlineContent = { Text("\u6DB2\u6001\u73BB\u7483\u6548\u679C") },
-                            supportingContent = { Text("\u5F00\u542F\u540E\u4F7F\u7528\u66F4\u900F\u660E\u7684\u6DB2\u6001\u73BB\u7483\uFF0C\u5173\u95ED\u5219\u4F7F\u7528\u6BDB\u73BB\u7483") },
-                            trailingContent = {
-                                Switch(
-                                    checked = displaySetting.useLiquidGlass,
-                                    onCheckedChange = {
-                                        updateDisplaySetting(displaySetting.copy(useLiquidGlass = it))
-                                    }
-                                )
-                            },
-                        )
-                    }
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_desc)) },

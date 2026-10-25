@@ -577,6 +577,13 @@ enum class ChatFontFamily {
 }
 
 @Serializable
+enum class GlassStyle {
+    NONE,           // 无效果
+    FROSTED,        // 毛玻璃 (HazeMaterials.thin)
+    LIQUID          // 液态玻璃 (ultraThin + 高透明)
+}
+
+@Serializable
 data class DisplaySetting(
     val userAvatar: Avatar = Avatar.Dummy,
     val userNickname: String = "",
@@ -610,8 +617,7 @@ data class DisplaySetting(
     val sendOnEnter: Boolean = false,
     val enableAutoScroll: Boolean = true,
     val enableLatexRendering: Boolean = true,
-    val enableBlurEffect: Boolean = false,
-    val useLiquidGlass: Boolean = false,
+    val glassStyle: GlassStyle = GlassStyle.NONE,
     val chatFontFamily: ChatFontFamily = ChatFontFamily.DEFAULT,
     val chatCustomFontPath: String = "",
     val chatCustomFontName: String = "",

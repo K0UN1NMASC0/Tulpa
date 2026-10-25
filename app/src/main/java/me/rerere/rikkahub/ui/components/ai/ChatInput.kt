@@ -103,6 +103,7 @@ import me.rerere.hugeicons.stroke.Cancel01
 import me.rerere.hugeicons.stroke.FullScreen
 import me.rerere.hugeicons.stroke.Zap
 import me.rerere.rikkahub.R
+import me.rerere.rikkahub.data.datastore.GlassStyle
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.datastore.getCurrentAssistant
 import me.rerere.rikkahub.data.datastore.getCurrentChatModel
@@ -147,8 +148,8 @@ fun ChatInput(
     val toaster = LocalToaster.current
     val assistant = settings.getCurrentAssistant()
     val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerLow
-    val isLiquid = settings.displaySetting.useLiquidGlass
-    val isBlur = settings.displaySetting.enableBlurEffect
+    val isLiquid = settings.displaySetting.glassStyle == GlassStyle.LIQUID
+    val isBlur = settings.displaySetting.glassStyle != GlassStyle.NONE
     val inputHazeStyle = if (isLiquid) {
         HazeMaterials.ultraThin(containerColor = hazeTintColor.copy(alpha = 0.15f))
     } else {
