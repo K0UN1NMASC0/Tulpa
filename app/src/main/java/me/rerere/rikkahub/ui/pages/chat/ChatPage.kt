@@ -739,7 +739,11 @@ private fun TopBar(
         onUpdateTitle(it)
     }
     val hazeTintColor = MaterialTheme.colorScheme.surfaceContainerLow
-    val topBarHazeStyle = HazeMaterials.thin(containerColor = hazeTintColor)
+    val topBarHazeStyle = if (settings.displaySetting.useLiquidGlass) {
+        HazeMaterials.ultraThin(containerColor = hazeTintColor.copy(alpha = 0.3f))
+    } else {
+        HazeMaterials.thin(containerColor = hazeTintColor)
+    }
 
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(containerColor = if (settings.displaySetting.enableBlurEffect) Color.Transparent else Color.Transparent),

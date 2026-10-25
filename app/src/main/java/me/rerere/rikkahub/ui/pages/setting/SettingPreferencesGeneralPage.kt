@@ -160,6 +160,20 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                             )
                         },
                     )
+                    if (displaySetting.enableBlurEffect) {
+                        item(
+                            headlineContent = { Text("\u6DB2\u6001\u73BB\u7483\u6548\u679C") },
+                            supportingContent = { Text("\u5F00\u542F\u540E\u4F7F\u7528\u66F4\u900F\u660E\u7684\u6DB2\u6001\u73BB\u7483\uFF0C\u5173\u95ED\u5219\u4F7F\u7528\u6BDB\u73BB\u7483") },
+                            trailingContent = {
+                                Switch(
+                                    checked = displaySetting.useLiquidGlass,
+                                    onCheckedChange = {
+                                        updateDisplaySetting(displaySetting.copy(useLiquidGlass = it))
+                                    }
+                                )
+                            },
+                        )
+                    }
                     item(
                         headlineContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_title)) },
                         supportingContent = { Text(stringResource(R.string.setting_display_page_enable_message_generation_haptic_effect_desc)) },
