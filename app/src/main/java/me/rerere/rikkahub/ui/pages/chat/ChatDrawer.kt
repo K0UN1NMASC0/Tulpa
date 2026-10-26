@@ -70,6 +70,7 @@ import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.TransactionHistory
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
+import me.rerere.rikkahub.data.datastore.GlassStyle
 import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.model.Assistant
 import me.rerere.rikkahub.data.model.Conversation
@@ -162,8 +163,19 @@ fun ChatDrawerContent(
     // Menu popup 状态
     var showMenuPopup by remember { mutableStateOf(false) }
 
+    val isLiquid = settings.displaySetting.glassStyle == GlassStyle.LIQUID
+    val isGlass = settings.displaySetting.glassStyle != GlassStyle.NONE
+    val drawerColor = if (isLiquid) {
+        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f)
+    } else if (isGlass) {
+        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.95f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
     ModalDrawerSheet(
-        modifier = Modifier.width(300.dp)
+        modifier = Modifier.width(300.dp),
+        drawerContainerColor = drawerColor,
     ) {
         Column(
             modifier = Modifier.padding(8.dp),
