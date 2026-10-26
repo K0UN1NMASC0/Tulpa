@@ -163,19 +163,8 @@ fun ChatDrawerContent(
     // Menu popup 状态
     var showMenuPopup by remember { mutableStateOf(false) }
 
-    val isLiquid = settings.displaySetting.glassStyle == GlassStyle.LIQUID
-    val isGlass = settings.displaySetting.glassStyle != GlassStyle.NONE
-    val drawerColor = if (isLiquid) {
-        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f)
-    } else if (isGlass) {
-        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.95f)
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
-    }
-
     ModalDrawerSheet(
-        modifier = Modifier.width(300.dp),
-        drawerContainerColor = drawerColor,
+        modifier = Modifier.width(300.dp)
     ) {
         Column(
             modifier = Modifier.padding(8.dp),
