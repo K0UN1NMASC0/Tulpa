@@ -151,7 +151,7 @@ fun ChatInput(
     val isLiquid = settings.displaySetting.glassStyle == GlassStyle.LIQUID
     val isBlur = settings.displaySetting.glassStyle != GlassStyle.NONE
     val inputHazeStyle = if (isLiquid) {
-        HazeMaterials.ultraThin(containerColor = hazeTintColor.copy(alpha = 0.15f))
+        HazeMaterials.ultraThin(containerColor = hazeTintColor.copy(alpha = 0.05f))
     } else {
         HazeMaterials.thin(containerColor = hazeTintColor)
     }
@@ -234,6 +234,9 @@ fun ChatInput(
                         ) {
                             blurEffect {
                                 style = inputHazeStyle
+                                if (isLiquid) {
+                                    blurRadius = 4.dp
+                                }
                             }
                         }
                         else Modifier
