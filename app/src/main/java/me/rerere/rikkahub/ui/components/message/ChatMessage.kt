@@ -457,6 +457,8 @@ private fun MessagePartsBlock(
                                 // Check if AI message is a pure sticker
                                 val isAiStickerMsg = isPureStickerMessage(textAfterVoiceStrip)
                                 val aiMixedStickerIds = if (!isAiStickerMsg) extractAllStickerIds(textAfterVoiceStrip) else emptyList()
+                                // Wrap in Column so main bubble renders ABOVE voice bubble
+                                Column {
                                 if (isAiStickerMsg) {
                                     Surface(
                                         modifier = Modifier.animateContentSize(),
@@ -535,6 +537,7 @@ private fun MessagePartsBlock(
                                         voiceCacheManager = voiceCacheManager,
                                     )
                                 }
+                                } // end Column wrapper for voice block ordering
                             }
                         }
 
