@@ -100,7 +100,6 @@ fun VoiceBubble(
 
     Surface(
         modifier = modifier
-            .fillMaxWidth()
             .padding(top = 6.dp)
             .clip(RoundedCornerShape(50))
             .clickable { handlePlay() }
@@ -111,7 +110,6 @@ fun VoiceBubble(
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
