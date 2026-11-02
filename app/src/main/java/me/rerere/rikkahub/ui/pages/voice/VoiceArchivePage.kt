@@ -1,9 +1,11 @@
 package me.rerere.rikkahub.ui.pages.voice
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,27 +15,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,50 +39,77 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import me.rerere.hugeicons.HugeIcons
+import me.rerere.hugeicons.stroke.Delete01
+import me.rerere.hugeicons.stroke.Download04
+import me.rerere.hugeicons.stroke.InLove
+import me.rerere.hugeicons.stroke.Play
+import me.rerere.hugeicons.stroke.Stop
 import me.rerere.rikkahub.data.voice.VoiceCacheManager
-import me.rerere.rikkahub.ui.context.LocalNavController
-import me.rerere.rikkahub.ui.context.LocalTTSState
-import java.io.File
+import me.rerere.rikkahub.data.voice.VoiceFilePlayer
+import me.rerere.rikkahub.data.voice.VoiceRecord
+import me.rerere.rikkahub.ui.components.nav.BackButton
+import me.rerere.rikkahub.ui.theme.CustomColors
+import me.rerere.rikkahub.utils.plus
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VoiceArchivePage() {
     val context = LocalContext.current
-    val navController = LocalNavController.current
-    val ttsState = LocalTTSState.current
     val scope = rememberCoroutineScope()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val voiceCacheManager = remember { VoiceCacheManager(context) }
 
-    var cachedFiles by remember { mutableStateOf(voiceCacheManager.getAllCachedFiles()) }
+    var records by remember { mutableStateOf(voiceCacheManager.getAllRecords()) }
     var totalSize by remember { mutableStateOf(voiceCacheManager.getTotalCacheSize()) }
+    var onlyFavorites by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
-    var currentlyPlaying by remember { mutableStateOf<File?>(null) }
+    var playingHash by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            VoiceFilePlayer.stop()
+        }
+    }
+
+    val displayedRecords = remember(records, onlyFavorites) {
+        if (onlyFavorites) records.filter { it.isFavorite } else records
+    }
+
+    fun refresh() {
+        records = voiceCacheManager.getAllRecords()
+        totalSize = voiceCacheManager.getTotalCacheSize()
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            LargeFlexibleTopAppBar(
                 title = { Text("Koun语音") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
+                    BackButton()
                 },
                 actions = {
-                    if (cachedFiles.isNotEmpty()) {
+                    if (records.isNotEmpty()) {
                         IconButton(onClick = { showClearDialog = true }) {
-                            Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear all")
+                            Icon(HugeIcons.Delete01, contentDescription = "清理缓存")
                         }
                     }
-                }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = CustomColors.topBarColors,
             )
-        }
+        },
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = CustomColors.topBarColors.containerColor,
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -92,11 +117,10 @@ fun VoiceArchivePage() {
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
         ) {
-            // Cache stats header
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(16.dp),
+                color = CustomColors.cardColorsOnSurfaceContainer.containerColor,
             ) {
                 Row(
                     modifier = Modifier
@@ -107,72 +131,87 @@ fun VoiceArchivePage() {
                 ) {
                     Column {
                         Text(
-                            text = "缓存语音",
+                            text = "已缓存的语音",
                             style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
-                            text = "${cachedFiles.size} 条",
+                            text = "共 ${records.size} 条 · 收藏 ${records.count { it.isFavorite }} 条 · ${formatFileSize(totalSize)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Text(
-                        text = formatFileSize(totalSize),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = !onlyFavorites,
+                            onClick = { onlyFavorites = false },
+                            label = { Text("全部") }
+                        )
+                        FilterChip(
+                            selected = onlyFavorites,
+                            onClick = { onlyFavorites = true },
+                            label = { Text("收藏") }
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (cachedFiles.isEmpty()) {
+            if (displayedRecords.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "还没有缓存的语音哦",
+                        text = if (onlyFavorites) "还没有收藏的语音哦" else "还没有缓存的语音哦",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                     )
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(cachedFiles, key = { it.absolutePath }) { file ->
-                        VoiceFileItem(
-                            file = file,
-                            isPlaying = currentlyPlaying == file,
+                    items(displayedRecords, key = { it.hash }) { record ->
+                        VoiceRecordCard(
+                            record = record,
+                            isPlaying = playingHash == record.hash,
                             onPlay = {
-                                if (currentlyPlaying == file) {
-                                    ttsState.stop()
-                                    currentlyPlaying = null
+                                val file = voiceCacheManager.getAudioFile(record.hash)
+                                if (file.exists()) {
+                                    VoiceFilePlayer.playOrStop(context, record.hash, file) { hash, playing ->
+                                        playingHash = if (playing) hash else null
+                                    }
                                 } else {
-                                    // Read file and use TTS to play
-                                    currentlyPlaying = file
-                                    // For cached files, we use the file name as reference
-                                    ttsState.stop()
-                                    // Play using the cached audio file path
-                                    Toast.makeText(context, "播放中...", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "音频文件不存在", Toast.LENGTH_SHORT).show()
+                                    refresh()
                                 }
+                            },
+                            onToggleFavorite = {
+                                voiceCacheManager.toggleFavoriteByHash(record.hash)
+                                refresh()
                             },
                             onSave = {
                                 scope.launch {
-                                    // Extract voice text from filename hash - for saving we copy the file directly
-                                    val success = saveFileToDownloads(context, file)
+                                    val file = voiceCacheManager.getAudioFile(record.hash)
+                                    val success = voiceCacheManager.saveFileToDownloads(file)
                                     Toast.makeText(
                                         context,
-                                        if (success) "已保存到下载文件夹" else "保存失败",
+                                        if (success) "已保存到 Download/Koun语音" else "保存失败",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
                             },
                             onDelete = {
-                                voiceCacheManager.deleteCachedFile(file)
-                                cachedFiles = voiceCacheManager.getAllCachedFiles()
-                                totalSize = voiceCacheManager.getTotalCacheSize()
+                                if (playingHash == record.hash) {
+                                    VoiceFilePlayer.stop()
+                                    playingHash = null
+                                }
+                                voiceCacheManager.deleteRecord(record.hash)
+                                refresh()
                             },
                         )
                     }
@@ -181,28 +220,42 @@ fun VoiceArchivePage() {
         }
     }
 
-    // Clear all confirmation dialog
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text("清空所有缓存") },
-            text = { Text("确定要删除所有缓存的语音吗？此操作不可撤销。") },
+            title = { Text("清理语音缓存") },
+            text = { Text("要清空未收藏的缓存语音，还是清空全部语音？") },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        voiceCacheManager.clearAllCache()
-                        cachedFiles = voiceCacheManager.getAllCachedFiles()
-                        totalSize = voiceCacheManager.getTotalCacheSize()
+                        VoiceFilePlayer.stop()
+                        playingHash = null
+                        voiceCacheManager.clearAllCache(keepFavorites = true)
+                        refresh()
                         showClearDialog = false
-                        Toast.makeText(context, "已清空", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "已清理未收藏的缓存", Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    Text("确定")
+                    Text("仅清理未收藏")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
-                    Text("取消")
+                Row {
+                    TextButton(
+                        onClick = {
+                            VoiceFilePlayer.stop()
+                            playingHash = null
+                            voiceCacheManager.clearAllCache(keepFavorites = false)
+                            refresh()
+                            showClearDialog = false
+                            Toast.makeText(context, "已清空全部缓存", Toast.LENGTH_SHORT).show()
+                        }
+                    ) {
+                        Text("全部清空", color = MaterialTheme.colorScheme.error)
+                    }
+                    TextButton(onClick = { showClearDialog = false }) {
+                        Text("取消")
+                    }
                 }
             },
         )
@@ -210,78 +263,95 @@ fun VoiceArchivePage() {
 }
 
 @Composable
-private fun VoiceFileItem(
-    file: File,
+private fun VoiceRecordCard(
+    record: VoiceRecord,
     isPlaying: Boolean,
     onPlay: () -> Unit,
+    onToggleFavorite: () -> Unit,
     onSave: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val dateFormat = remember { SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()) }
-    val dateStr = remember(file.lastModified()) { dateFormat.format(Date(file.lastModified())) }
-    val sizeStr = remember(file.length()) { formatFileSize(file.length()) }
+    val dateStr = remember(record.timestamp) { dateFormat.format(Date(record.timestamp)) }
+    val sizeStr = remember(record.fileSize) { formatFileSize(record.fileSize) }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .clickable { onPlay() },
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            containerColor = CustomColors.listItemColors.containerColor,
         ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(24.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Play button
-            IconButton(onClick = onPlay, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Filled.Stop else Icons.Filled.PlayArrow,
-                    contentDescription = if (isPlaying) "Stop" else "Play",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-
-            // File info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = file.nameWithoutExtension.replace("voice_", ""),
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = dateStr,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = sizeStr,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = if (isPlaying) HugeIcons.Stop else HugeIcons.Play,
+                        contentDescription = if (isPlaying) "Stop" else "Play",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
 
-            // Save button
-            IconButton(onClick = onSave, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    Icons.Filled.Download,
-                    contentDescription = "Save",
-                    modifier = Modifier.size(18.dp),
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = record.displayText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "$dateStr · $sizeStr",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            // Delete button
-            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+            Text(
+                text = if (record.isFavorite) "已收藏" else "收藏",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (record.isFavorite) FontWeight.Bold else FontWeight.Normal,
+                color = if (record.isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onToggleFavorite() }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+            )
+
+            Text(
+                text = "保存",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onSave() }
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+            )
+
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(28.dp),
+            ) {
                 Icon(
-                    Icons.Filled.Delete,
+                    imageVector = HugeIcons.Delete01,
                     contentDescription = "Delete",
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }
@@ -292,43 +362,6 @@ private fun formatFileSize(bytes: Long): String {
     return when {
         bytes < 1024 -> "${bytes}B"
         bytes < 1024 * 1024 -> "${bytes / 1024}KB"
-        else -> String.format("%.1fMB", bytes / (1024.0 * 1024.0))
-    }
-}
-
-private suspend fun saveFileToDownloads(context: android.content.Context, file: File): Boolean {
-    return try {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val fileName = "koun_voice_${timestamp}.mp3"
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            val contentValues = android.content.ContentValues().apply {
-                put(android.provider.MediaStore.Audio.Media.DISPLAY_NAME, fileName)
-                put(android.provider.MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
-                put(
-                    android.provider.MediaStore.Audio.Media.RELATIVE_PATH,
-                    "${android.os.Environment.DIRECTORY_DOWNLOADS}/Koun语音"
-                )
-            }
-            val uri = context.contentResolver.insert(
-                android.provider.MediaStore.Downloads.getContentUri(android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY),
-                contentValues
-            )
-            uri?.let {
-                context.contentResolver.openOutputStream(it)?.use { out ->
-                    file.inputStream().use { input -> input.copyTo(out) }
-                }
-            }
-            true
-        } else {
-            val dir = java.io.File(
-                android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
-                "Koun语音"
-            )
-            if (!dir.exists()) dir.mkdirs()
-            file.copyTo(java.io.File(dir, fileName), overwrite = true)
-            true
-        }
-    } catch (e: Exception) {
-        false
+        else -> String.format(Locale.getDefault(), "%.1fMB", bytes / (1024.0 * 1024.0))
     }
 }

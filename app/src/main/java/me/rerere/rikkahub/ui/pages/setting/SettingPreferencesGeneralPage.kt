@@ -340,6 +340,18 @@ fun SettingPreferencesGeneralPage(vm: SettingVM = koinViewModel()) {
                             )
                         },
                     )
+                    item(
+                        headlineContent = { Text("启用 <voice> 独立语音气泡") },
+                        supportingContent = { Text("开启后，Koun在消息末尾输出的 <voice>...</voice> 会渲染为底部独立语音条，点击即可合成并缓存语音") },
+                        trailingContent = {
+                            Switch(
+                                checked = settings.enableVoiceBlock,
+                                onCheckedChange = {
+                                    vm.updateSettings(settings.copy(enableVoiceBlock = it))
+                                }
+                            )
+                        },
+                    )
                 }
             }
         }

@@ -126,6 +126,7 @@ val THINKING_REGEX = Regex("<think>([\\s\\S]*?)(?:</think>|$)", RegexOption.DOT_
 private val CODE_BLOCK_REGEX = Regex("```[\\s\\S]*?```|`[^`\n]*`", RegexOption.DOT_MATCHES_ALL)
 private val BREAK_LINE_REGEX = Regex("(?i)<br\\s*/?>")
 private val LATEX_BLOCK_LINE_BREAK_REGEX = Regex("""[ \t]*\r?\n[ \t]*""")
+private val SINGLE_NEWLINE_REGEX = Regex("""(?<!\n)\r?\n(?!\n)""")
 
 // 预处理markdown内容
 private fun preProcess(content: String): String {
@@ -158,6 +159,30 @@ private fun preProcess(content: String): String {
                 .trim()
                 .replace(LATEX_BLOCK_LINE_BREAK_REGEX, " ")
             "$$" + formula + "$$"
+        }
+    }
+
+    // 保留非代码块、非表格行内的单个换行符（防止日文与中文翻译被Markdown合并到同一行）
+    val lines = result.split("\n")
+    var inFence = false
+    result = buildString {
+        for (i in lines.indices) {
+            val line = lines[i]
+            val trimmed = line.trim()
+            if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+                inFence = !inFence
+            }
+            append(line)
+            if (i < lines.lastIndex) {
+                val nextLine = lines[i + 1].trim()
+                val isTableLine = trimmed.startsWith("|") && trimmed.endsWith("|")
+                val isHeading = trimmed.startsWith("#")
+                val isHr = trimmed == "---" || trimmed == "***" || trimmed == "___"
+                if (!inFence && trimmed.isNotEmpty() && nextLine.isNotEmpty() && !isTableLine && !isHeading && !isHr) {
+                    if (!line.endsWith("  ")) append("  ")
+                }
+                append("\n")
+            }
         }
     }
 

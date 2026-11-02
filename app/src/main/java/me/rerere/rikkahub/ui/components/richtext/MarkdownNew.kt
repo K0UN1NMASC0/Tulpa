@@ -101,6 +101,28 @@ private fun preProcess(content: String): String {
     result = BLOCK_LATEX_REGEX.replace(result) { m ->
         if (isInCodeBlock(m.range.first)) m.value else "$$" + m.groupValues[1] + "$$"
     }
+    val lines = result.split("\n")
+    var inFence = false
+    result = buildString {
+        for (i in lines.indices) {
+            val line = lines[i]
+            val trimmed = line.trim()
+            if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+                inFence = !inFence
+            }
+            append(line)
+            if (i < lines.lastIndex) {
+                val nextLine = lines[i + 1].trim()
+                val isTableLine = trimmed.startsWith("|") && trimmed.endsWith("|")
+                val isHeading = trimmed.startsWith("#")
+                val isHr = trimmed == "---" || trimmed == "***" || trimmed == "___"
+                if (!inFence && trimmed.isNotEmpty() && nextLine.isNotEmpty() && !isTableLine && !isHeading && !isHr) {
+                    if (!line.endsWith("  ")) append("  ")
+                }
+                append("\n")
+            }
+        }
+    }
     return result
 }
 

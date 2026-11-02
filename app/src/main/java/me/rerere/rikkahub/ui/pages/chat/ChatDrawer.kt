@@ -68,6 +68,7 @@ import me.rerere.hugeicons.stroke.Search01
 import me.rerere.hugeicons.stroke.Settings03
 import me.rerere.hugeicons.stroke.Sparkles
 import me.rerere.hugeicons.stroke.TransactionHistory
+import me.rerere.hugeicons.stroke.Voice
 import me.rerere.rikkahub.R
 import me.rerere.rikkahub.Screen
 import me.rerere.rikkahub.data.datastore.GlassStyle
@@ -390,9 +391,11 @@ fun ChatDrawerContent(
                     },
                 )
 
+                Spacer(Modifier.weight(1f))
+
                 DrawerAction(
                     icon = {
-                        Icon(HugeIcons.TransactionHistory, "Koun语音")
+                        Icon(HugeIcons.Voice, "Koun语音")
                     },
                     label = {
                         Text("Koun语音")
@@ -402,7 +405,7 @@ fun ChatDrawerContent(
                     },
                 )
 
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
 
                 DrawerAction(
                     icon = {
