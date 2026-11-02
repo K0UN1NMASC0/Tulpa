@@ -2,14 +2,11 @@ package me.rerere.rikkahub.data.voice
 
 import android.content.ContentValues
 import android.content.Context
-import android.net.Uri
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withContext
@@ -286,10 +283,10 @@ class VoiceCacheManager(
 }
 
 /**
- * Singleton local audio player for cached Koun voice files.
+ * Singleton local audio player for cached Koun voice files using Android native MediaPlayer.
  */
 object VoiceFilePlayer {
-    private var exoPlayer: ExoPlayer? = null
+    private var mediaPlayer: MediaPlayer? = null
     private var currentHash: String? = null
     private var onStateChanged: ((String?, Boolean) -> Unit)? = null
 
@@ -299,45 +296,50 @@ object VoiceFilePlayer {
         file: File,
         onUpdate: (playingHash: String?, isPlaying: Boolean) -> Unit
     ) {
-        if (currentHash == hash && exoPlayer?.isPlaying == true) {
+        if (currentHash == hash && mediaPlayer?.isPlaying == true) {
             stop()
             onUpdate(null, false)
             return
         }
         stop()
-        val player = ExoPlayer.Builder(context.applicationContext).build()
-        exoPlayer = player
-        currentHash = hash
-        onStateChanged = onUpdate
+        try {
+            val player = MediaPlayer()
+            mediaPlayer = player
+            currentHash = hash
+            onStateChanged = onUpdate
 
-        player.addListener(object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
-                    val h = currentHash
-                    currentHash = null
-                    onStateChanged?.invoke(h, false)
-                }
+            player.setDataSource(file.absolutePath)
+            player.setOnCompletionListener {
+                val h = currentHash
+                currentHash = null
+                onStateChanged?.invoke(h, false)
             }
-
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                onStateChanged?.invoke(currentHash, isPlaying)
+            player.setOnErrorListener { _, _, _ ->
+                val h = currentHash
+                currentHash = null
+                onStateChanged?.invoke(h, false)
+                true
             }
-        })
-
-        player.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
-        player.prepare()
-        player.play()
-        onUpdate(hash, true)
+            player.prepare()
+            player.start()
+            onUpdate(hash, true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to play voice file", e)
+            stop()
+            onUpdate(null, false)
+        }
     }
 
     fun stop() {
         try {
-            exoPlayer?.stop()
-            exoPlayer?.release()
+            mediaPlayer?.let {
+                if (it.isPlaying) it.stop()
+                it.release()
+            }
         } catch (_: Exception) {
         }
         val prev = currentHash
-        exoPlayer = null
+        mediaPlayer = null
         currentHash = null
         onStateChanged?.invoke(prev, false)
     }
