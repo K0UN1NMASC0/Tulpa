@@ -390,6 +390,18 @@ fun ChatDrawerContent(
                     },
                 )
 
+                DrawerAction(
+                    icon = {
+                        Icon(HugeIcons.TransactionHistory, "Koun语音")
+                    },
+                    label = {
+                        Text("Koun语音")
+                    },
+                    onClick = {
+                        navController.navigate(Screen.VoiceArchive)
+                    },
+                )
+
                 Spacer(Modifier.weight(1f))
 
                 DrawerAction(

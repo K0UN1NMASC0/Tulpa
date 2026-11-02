@@ -100,6 +100,9 @@ import androidx.compose.foundation.BorderStroke
 import coil3.compose.AsyncImage
 import me.rerere.rikkahub.data.model.QuickMessage
 import androidx.compose.ui.layout.ContentScale
+import me.rerere.rikkahub.utils.VoiceBlockUtils
+import me.rerere.rikkahub.data.voice.VoiceCacheManager
+import me.rerere.rikkahub.ui.context.LocalSettings
 
 @Composable
 fun ChatMessage(
@@ -447,9 +450,13 @@ private fun MessagePartsBlock(
                                     }
                                 }
                             } else {
+                                // Extract voice block if present and enabled
+                                val voiceContent = if (settings.enableVoiceBlock) VoiceBlockUtils.extractVoiceContent(part.text) else null
+                                val textAfterVoiceStrip = if (voiceContent != null) VoiceBlockUtils.stripVoiceBlock(part.text) else part.text
+
                                 // Check if AI message is a pure sticker
-                                val isAiStickerMsg = isPureStickerMessage(part.text)
-                                val aiMixedStickerIds = if (!isAiStickerMsg) extractAllStickerIds(part.text) else emptyList()
+                                val isAiStickerMsg = isPureStickerMessage(textAfterVoiceStrip)
+                                val aiMixedStickerIds = if (!isAiStickerMsg) extractAllStickerIds(textAfterVoiceStrip) else emptyList()
                                 if (isAiStickerMsg) {
                                     Surface(
                                         modifier = Modifier.animateContentSize(),
@@ -459,7 +466,7 @@ private fun MessagePartsBlock(
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             StickerInlineContent(
-                                                text = part.text,
+                                                text = textAfterVoiceStrip,
                                                 quickMessages = settings.quickMessages,
                                             )
                                         }
@@ -473,7 +480,7 @@ private fun MessagePartsBlock(
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             MarkdownBlock(
-                                                content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(part.text) else part.text).replaceRegexes(
+                                                content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(textAfterVoiceStrip) else textAfterVoiceStrip).replaceRegexes(
                                                     assistant = assistant,
                                                     scope = AssistantAffectScope.ASSISTANT,
                                                     visual = true,
@@ -497,7 +504,7 @@ private fun MessagePartsBlock(
                                 } else {
                                     Column {
                                         MarkdownBlock(
-                                            content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(part.text) else part.text).replaceRegexes(
+                                            content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(textAfterVoiceStrip) else textAfterVoiceStrip).replaceRegexes(
                                                 assistant = assistant,
                                                 scope = AssistantAffectScope.ASSISTANT,
                                                 visual = true,
@@ -518,6 +525,15 @@ private fun MessagePartsBlock(
                                             }
                                         }
                                     }
+                                }
+
+                                // Render voice bubble below the main bubble if voice block exists
+                                if (voiceContent != null) {
+                                    val voiceCacheManager = remember { VoiceCacheManager(context) }
+                                    VoiceBubble(
+                                        voiceText = voiceContent,
+                                        voiceCacheManager = voiceCacheManager,
+                                    )
                                 }
                             }
                         }

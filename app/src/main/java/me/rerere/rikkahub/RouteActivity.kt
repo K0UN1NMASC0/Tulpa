@@ -127,6 +127,7 @@ import me.rerere.rikkahub.ui.pages.setting.SettingWebPage
 import me.rerere.rikkahub.ui.pages.share.handler.ShareHandlerPage
 import me.rerere.rikkahub.ui.pages.avatarframe.AvatarFrameEditorPage
 import me.rerere.rikkahub.ui.pages.stats.StatsPage
+import me.rerere.rikkahub.ui.pages.voice.VoiceArchivePage
 import me.rerere.rikkahub.ui.pages.translator.TranslatorPage
 import me.rerere.rikkahub.ui.pages.webview.WebViewPage
 import me.rerere.rikkahub.ui.pages.home.HomePage
@@ -541,6 +542,10 @@ class RouteActivity : ComponentActivity() {
                                 StatsPage()
                             }
 
+                            entry<Screen.VoiceArchive> {
+                                VoiceArchivePage()
+                            }
+
                             entry<Screen.AvatarFrameEditor> { key ->
                                 AvatarFrameEditorPage(target = key.target)
                             }
@@ -749,6 +754,9 @@ sealed interface Screen : NavKey {
 
     @Serializable
     data object Stats : Screen
+
+    @Serializable
+    data object VoiceArchive : Screen
 
     @Serializable
     data class AvatarFrameEditor(val target: String = "user") : Screen
