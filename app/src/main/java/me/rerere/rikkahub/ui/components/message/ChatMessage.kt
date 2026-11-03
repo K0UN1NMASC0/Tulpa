@@ -453,10 +453,12 @@ private fun MessagePartsBlock(
                                 // Extract voice block if present and enabled
                                 val voiceContent = if (settings.enableVoiceBlock) VoiceBlockUtils.extractVoiceContent(part.text) else null
                                 val textAfterVoiceStrip = if (voiceContent != null) VoiceBlockUtils.stripVoiceBlock(part.text) else part.text
+                                // Strip time_reminder tags from display
+                                val textClean = stripTimeReminder(textAfterVoiceStrip)
 
                                 // Check if AI message is a pure sticker
-                                val isAiStickerMsg = isPureStickerMessage(textAfterVoiceStrip)
-                                val aiMixedStickerIds = if (!isAiStickerMsg) extractAllStickerIds(textAfterVoiceStrip) else emptyList()
+                                val isAiStickerMsg = isPureStickerMessage(textClean)
+                                val aiMixedStickerIds = if (!isAiStickerMsg) extractAllStickerIds(textClean) else emptyList()
                                 // Wrap in Column so main bubble renders ABOVE voice bubble
                                 Column {
                                 if (isAiStickerMsg) {
@@ -468,7 +470,7 @@ private fun MessagePartsBlock(
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             StickerInlineContent(
-                                                text = textAfterVoiceStrip,
+                                                text = textClean,
                                                 quickMessages = settings.quickMessages,
                                             )
                                         }
@@ -482,7 +484,7 @@ private fun MessagePartsBlock(
                                     ) {
                                         Column(modifier = Modifier.padding(8.dp)) {
                                             MarkdownBlock(
-                                                content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(textAfterVoiceStrip) else textAfterVoiceStrip).replaceRegexes(
+                                                content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(textClean) else textClean).replaceRegexes(
                                                     assistant = assistant,
                                                     scope = AssistantAffectScope.ASSISTANT,
                                                     visual = true,
@@ -506,7 +508,7 @@ private fun MessagePartsBlock(
                                 } else {
                                     Column {
                                         MarkdownBlock(
-                                            content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(textAfterVoiceStrip) else textAfterVoiceStrip).replaceRegexes(
+                                            content = (if (aiMixedStickerIds.isNotEmpty()) stripStickerTag(textClean) else textClean).replaceRegexes(
                                                 assistant = assistant,
                                                 scope = AssistantAffectScope.ASSISTANT,
                                                 visual = true,
@@ -775,6 +777,7 @@ private fun MessagePartsBlock(
 // ==================== Inline Sticker Rendering ====================
 
 private val stickerPattern = Regex("""\(表情包:(.+?)\)""")
+private val timeReminderPattern = Regex("""<time_reminder>[\s\S]*?</time_reminder>\n?""")
 
 /**
  * 检测文本是否为纯表情包消息（一个或多个连续表情包，中间允许空白）。
@@ -808,6 +811,13 @@ private fun extractMixedStickerId(text: String): String? {
  */
 private fun stripStickerTag(text: String): String {
     return stickerPattern.replace(text, "").trim()
+}
+
+/**
+ * Strip <time_reminder>...</time_reminder> tags from display text.
+ */
+private fun stripTimeReminder(text: String): String {
+    return timeReminderPattern.replace(text, "").trim()
 }
 
 /**
