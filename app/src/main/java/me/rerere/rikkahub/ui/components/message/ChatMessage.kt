@@ -535,6 +535,9 @@ private fun MessagePartsBlock(
                                     VoiceBubble(
                                         voiceText = voiceContent,
                                         voiceCacheManager = voiceCacheManager,
+                                        bubbleShape = aiBubbleShape,
+                                        bubbleColor = aiBubbleColor,
+                                        bubbleBorder = bubbleBorder,
                                     )
                                 }
                                 } // end Column wrapper for voice block ordering
