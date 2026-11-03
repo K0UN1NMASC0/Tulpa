@@ -52,6 +52,7 @@ fun VoiceBubble(
     bubbleColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     bubbleBorder: BorderStroke? = null,
     textColor: Color = MaterialTheme.colorScheme.onSurface,
+    textStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodySmall,
 ) {
     val context = LocalContext.current
     val settings = LocalSettings.current
@@ -116,10 +117,10 @@ fun VoiceBubble(
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            // Voice text display - full text, uses same color as AI bubble text
+            // Voice text display - full text, uses AI text style for color consistency
             Text(
                 text = displayText,
-                style = MaterialTheme.typography.bodySmall,
+                style = textStyle,
                 color = textColor,
             )
 

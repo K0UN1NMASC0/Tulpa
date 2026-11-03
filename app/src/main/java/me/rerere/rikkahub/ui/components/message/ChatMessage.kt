@@ -550,6 +550,7 @@ private fun MessagePartsBlock(
                                         bubbleColor = voiceBubbleColor,
                                         bubbleBorder = bubbleBorder,
                                         textColor = voiceTextColor,
+                                        textStyle = aiTextStyle,
                                     )
                                 }
                                 } // end Column wrapper for voice block ordering
