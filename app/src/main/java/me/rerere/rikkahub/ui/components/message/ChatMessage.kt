@@ -532,11 +532,17 @@ private fun MessagePartsBlock(
                                 // Render voice bubble below the main bubble if voice block exists
                                 if (voiceContent != null) {
                                     val voiceCacheManager = remember { VoiceCacheManager(context) }
+                                    // Use opaque color for voice bubble so it's not too faint
+                                    val voiceBubbleColor = if (bubbleConfig.enabled) {
+                                        Color(bubbleConfig.aiBubbleColor.toInt())
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh
+                                    }
                                     VoiceBubble(
                                         voiceText = voiceContent,
                                         voiceCacheManager = voiceCacheManager,
                                         bubbleShape = aiBubbleShape,
-                                        bubbleColor = aiBubbleColor,
+                                        bubbleColor = voiceBubbleColor,
                                         bubbleBorder = bubbleBorder,
                                     )
                                 }
