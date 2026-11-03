@@ -538,12 +538,18 @@ private fun MessagePartsBlock(
                                     } else {
                                         MaterialTheme.colorScheme.surfaceContainerHigh
                                     }
+                                    val voiceTextColor = if (bubbleConfig.enabled) {
+                                        Color(bubbleConfig.aiTextColor.toInt())
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    }
                                     VoiceBubble(
                                         voiceText = voiceContent,
                                         voiceCacheManager = voiceCacheManager,
                                         bubbleShape = aiBubbleShape,
                                         bubbleColor = voiceBubbleColor,
                                         bubbleBorder = bubbleBorder,
+                                        textColor = voiceTextColor,
                                     )
                                 }
                                 } // end Column wrapper for voice block ordering

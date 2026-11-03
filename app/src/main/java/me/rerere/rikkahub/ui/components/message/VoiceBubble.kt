@@ -32,7 +32,6 @@ import kotlinx.coroutines.launch
 import me.rerere.hugeicons.HugeIcons
 import me.rerere.hugeicons.stroke.Play
 import me.rerere.hugeicons.stroke.Stop
-import me.rerere.rikkahub.data.datastore.Settings
 import me.rerere.rikkahub.data.voice.VoiceCacheManager
 import me.rerere.rikkahub.data.voice.VoiceFilePlayer
 import me.rerere.rikkahub.ui.context.LocalSettings
@@ -42,7 +41,7 @@ import org.koin.compose.koinInject
 
 /**
  * A voice playback bubble rendered below the main chat bubble.
- * Uses the same bubble shape/color/border as the AI chat bubble for visual consistency.
+ * Uses the same bubble shape/color/border/textColor as the AI chat bubble.
  */
 @Composable
 fun VoiceBubble(
@@ -52,6 +51,7 @@ fun VoiceBubble(
     bubbleShape: RoundedCornerShape = RoundedCornerShape(16.dp),
     bubbleColor: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     bubbleBorder: BorderStroke? = null,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     val context = LocalContext.current
     val settings = LocalSettings.current
@@ -116,11 +116,11 @@ fun VoiceBubble(
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            // Voice text display - full text, no truncation
+            // Voice text display - full text, uses same color as AI bubble text
             Text(
                 text = displayText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = textColor,
             )
 
             // Controls row
@@ -134,13 +134,13 @@ fun VoiceBubble(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = textColor,
                     )
                 } else {
                     Icon(
                         imageVector = if (isPlaying) HugeIcons.Stop else HugeIcons.Play,
                         contentDescription = if (isPlaying) "停止" else "播放",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = textColor,
                         modifier = Modifier
                             .size(16.dp)
                             .clickable { handlePlay() },
@@ -150,7 +150,7 @@ fun VoiceBubble(
                 Text(
                     text = if (isPlaying) "播放中…" else "点击播放",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = textColor.copy(alpha = 0.7f),
                     modifier = Modifier.weight(1f),
                 )
 
@@ -158,7 +158,7 @@ fun VoiceBubble(
                     text = if (isFavorite) "已收藏" else "收藏",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (isFavorite) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = textColor,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
@@ -182,7 +182,7 @@ fun VoiceBubble(
                 Text(
                     text = "保存",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = textColor,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable {
