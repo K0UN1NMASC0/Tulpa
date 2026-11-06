@@ -433,6 +433,28 @@ internal fun AssistantBasicContent(
             FormItem(
                 modifier = Modifier.padding(8.dp),
                 label = {
+                    Text("翻译分离")
+                },
+                description = {
+                    Text("从回复中提取「翻译」存入独立字段，上下文只保留原文以节省 token")
+                },
+                tail = {
+                    Switch(
+                        checked = assistant.enableTranslationSplit,
+                        onCheckedChange = {
+                            onUpdate(
+                                assistant.copy(
+                                    enableTranslationSplit = it
+                                )
+                            )
+                        }
+                    )
+                }
+            )
+            HorizontalDivider()
+            FormItem(
+                modifier = Modifier.padding(8.dp),
+                label = {
                     Text(stringResource(R.string.assistant_page_thinking_budget))
                 },
             ) {

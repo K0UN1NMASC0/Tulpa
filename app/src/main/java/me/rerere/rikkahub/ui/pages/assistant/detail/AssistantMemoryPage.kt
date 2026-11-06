@@ -246,46 +246,6 @@ private fun AssistantMemoryContent(
                     )
                 }
             )
-            item(
-                headlineContent = { Text("翻译分离") },
-                supportingContent = {
-                    Text(
-                        text = "从回复中提取「翻译」，上下文只保留原文以节省 token",
-                    )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = assistant.enableTranslationSplit,
-                        onCheckedChange = {
-                            onUpdateAssistant(
-                                assistant.copy(
-                                    enableTranslationSplit = it
-                                )
-                            )
-                        }
-                    )
-                }
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.assistant_page_manage_memory_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .align(Alignment.CenterStart)
-            )
-
-            IconButton(
-                onClick = {
-                    memoryDialogState.open(AssistantMemory(0, ""))
-                },
-                modifier = Modifier.align(Alignment.CenterEnd)
             ) {
                 Icon(
                     imageVector = HugeIcons.Add01,
