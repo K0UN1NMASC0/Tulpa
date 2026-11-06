@@ -103,6 +103,7 @@ import androidx.compose.ui.layout.ContentScale
 import me.rerere.rikkahub.utils.VoiceBlockUtils
 import me.rerere.rikkahub.data.voice.VoiceCacheManager
 import me.rerere.rikkahub.ui.context.LocalSettings
+import androidx.compose.material3.HorizontalDivider
 
 @Composable
 fun ChatMessage(
