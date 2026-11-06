@@ -114,11 +114,9 @@ fun VoiceBubble(
         color = bubbleColor,
         border = bubbleBorder,
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // Voice text display - full text, uses AI text style for color consistency
             Text(
@@ -129,7 +127,7 @@ fun VoiceBubble(
 
             // Controls row
             Row(
-                modifier = Modifier.padding(top = 6.dp),
+                modifier = Modifier.padding(top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
