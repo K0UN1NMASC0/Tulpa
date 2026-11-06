@@ -180,10 +180,23 @@ fun ChatMessage(
 
 
             message.translation?.let { translation ->
-                CollapsibleTranslationText(
-                    content = translation,
-                    onClickCitation = {}
-                )
+                if (assistant?.enableTranslationSplit == true) {
+                    // 翻译分离模式：直接在气泡内渲染翻译，无卡片无折叠
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 6.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    )
+                    MarkdownBlock(
+                        content = translation,
+                        onClickCitation = {},
+                        modifier = Modifier,
+                    )
+                } else {
+                    CollapsibleTranslationText(
+                        content = translation,
+                        onClickCitation = {}
+                    )
+                }
             }
         }
 
