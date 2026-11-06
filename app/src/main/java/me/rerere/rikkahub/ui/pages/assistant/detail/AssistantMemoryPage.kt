@@ -246,28 +246,27 @@ private fun AssistantMemoryContent(
                     )
                 }
             )
-        }
-
-        item(
-            headlineContent = { Text("翻译分离") },
-            supportingContent = {
-                Text(
-                    text = "从回复中提取「翻译」，上下文只保留原文以节省 token",
-                )
-            },
-            trailingContent = {
-                Switch(
-                    checked = assistant.enableTranslationSplit,
-                    onCheckedChange = {
-                        onUpdateAssistant(
-                            assistant.copy(
-                                enableTranslationSplit = it
+            item(
+                headlineContent = { Text("翻译分离") },
+                supportingContent = {
+                    Text(
+                        text = "从回复中提取「翻译」，上下文只保留原文以节省 token",
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = assistant.enableTranslationSplit,
+                        onCheckedChange = {
+                            onUpdateAssistant(
+                                assistant.copy(
+                                    enableTranslationSplit = it
+                                )
                             )
-                        )
-                    }
-                )
-            }
-        )
+                        }
+                    )
+                }
+            )
+        }
 
         Box(
             modifier = Modifier
