@@ -246,6 +246,26 @@ private fun AssistantMemoryContent(
                     )
                 }
             )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.assistant_page_manage_memory_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .padding(bottom = 8.dp)
+                    .align(Alignment.CenterStart)
+            )
+
+            IconButton(
+                onClick = {
+                    memoryDialogState.open(AssistantMemory(0, ""))
+                },
+                modifier = Modifier.align(Alignment.CenterEnd)
             ) {
                 Icon(
                     imageVector = HugeIcons.Add01,
